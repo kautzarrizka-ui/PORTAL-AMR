@@ -1,0 +1,2790 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMR Autoxing CBI — Harmonisasi Supply</title>
+<style>
+/* ============================================================
+   AMR Autoxing CBI — Middleware Portal
+   Single-file clone of SYS-AX Middleware layout.
+   Data is stored in localStorage (keys prefixed "amr_") so it
+   can be populated later via the Add/Edit actions on each page.
+   ============================================================ */
+
+:root{
+  --bg:#f6f7f9;
+  --surface:#ffffff;
+  --surface-2:#fafafa;
+  --sidebar:#ffffff;
+  --border:#eceef1;
+  --border-2:#e4e7eb;
+  --text:#0f172a;
+  --text-2:#475569;
+  --muted:#94a3b8;
+  --brand:#14b8a6;         /* teal icons / links */
+  --brand-2:#17c3a3;       /* buttons */
+  --brand-strong:#0ea38b;
+  --brand-tint:#e9faf5;
+  --brand-tint-2:#d5f4ec;
+  --amber:#f59e0b;
+  --amber-tint:#fef3e2;
+  --red:#ef4444;
+  --red-tint:#fdecec;
+  --green:#16a34a;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
+  --shadow-lg:0 10px 30px rgba(16,24,40,.10);
+  --radius:14px;
+  --radius-sm:10px;
+  --sidebar-w:256px;
+}
+html[data-theme="dark"]{
+  --bg:#0b1220;
+  --surface:#111a2b;
+  --surface-2:#0e1626;
+  --sidebar:#0d1524;
+  --border:#1e293b;
+  --border-2:#24344a;
+  --text:#e6edf6;
+  --text-2:#9fb0c4;
+  --muted:#64748b;
+  --brand-tint:rgba(20,184,166,.12);
+  --brand-tint-2:rgba(20,184,166,.18);
+  --amber-tint:rgba(245,158,11,.14);
+  --red-tint:rgba(239,68,68,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,"Helvetica Neue",Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  font-size:14px;
+  line-height:1.5;
+}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+svg{display:block}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- App shell ---------- */
+.app{display:flex;min-height:100vh}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  width:var(--sidebar-w);
+  flex:0 0 var(--sidebar-w);
+  background:var(--sidebar);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;
+  transition:margin-left .25s ease;
+  z-index:40;
+}
+.brand{
+  display:flex;align-items:center;gap:12px;
+  padding:20px 20px;
+  border-bottom:1px solid var(--border);
+}
+.brand .mark{
+  width:40px;height:40px;border-radius:11px;flex:0 0 40px;
+  background:linear-gradient(135deg,var(--brand-2),var(--brand));
+  display:grid;place-items:center;color:#fff;
+  box-shadow:0 4px 12px rgba(20,184,166,.35);
+}
+.brand .mark svg{width:22px;height:22px}
+.brand .txt{line-height:1.15}
+.brand .txt b{font-size:15px;font-weight:800;letter-spacing:.2px;display:block}
+.brand .txt span{font-size:12px;color:var(--text-2)}
+
+.nav{flex:1;overflow-y:auto;padding:12px 12px 8px}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:9px 12px;border-radius:var(--radius-sm);
+  color:var(--text);font-weight:500;
+  cursor:pointer;user-select:none;position:relative;
+  transition:background .12s,color .12s;
+}
+.nav-item:hover{background:var(--surface-2)}
+.nav-item .ic{width:18px;height:18px;color:var(--brand);flex:0 0 18px}
+.nav-item.parent .ic{color:var(--text-2)}
+.nav-item .caret{margin-left:auto;color:var(--muted);transition:transform .18s}
+.nav-item.open .caret{transform:rotate(90deg)}
+.nav-item.active{background:var(--brand-tint);color:var(--brand-strong)}
+.nav-item.active .ic{color:var(--brand-strong)}
+.nav-group{margin-bottom:2px}
+.nav-children{
+  margin:2px 0 2px 22px;padding-left:12px;
+  border-left:1px solid var(--border-2);
+  overflow:hidden;
+}
+.nav-children .nav-item{padding:8px 12px;font-weight:500}
+.subheading{
+  font-size:11px;font-weight:700;letter-spacing:.08em;
+  color:var(--muted);text-transform:uppercase;
+  padding:14px 14px 6px;
+}
+
+.sidebar-foot{
+  border-top:1px solid var(--border);
+  padding:14px 16px;display:flex;align-items:center;gap:12px;position:relative;
+}
+.avatar{
+  width:38px;height:38px;border-radius:10px;flex:0 0 38px;
+  background:var(--brand-tint);color:var(--brand-strong);
+  display:grid;place-items:center;font-weight:800;font-size:13px;
+}
+.sidebar-foot .who b{display:block;font-size:13.5px;font-weight:700}
+.sidebar-foot .who span{font-size:11px;color:var(--muted);letter-spacing:.04em}
+.sidebar-foot .logout{margin-left:auto;color:var(--muted);padding:6px;border-radius:8px;background:none;border:0}
+.sidebar-foot .logout:hover{color:var(--red);background:var(--red-tint)}
+
+/* ---------- Main ---------- */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{
+  height:64px;display:flex;align-items:center;gap:16px;
+  padding:0 24px;background:var(--surface);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:30;
+}
+.icon-btn{
+  width:34px;height:34px;border-radius:9px;border:0;background:none;
+  color:var(--text-2);display:grid;place-items:center;
+}
+.icon-btn:hover{background:var(--surface-2);color:var(--text)}
+.breadcrumb{display:flex;align-items:center;gap:8px;color:var(--text-2);font-size:14px;flex-wrap:wrap}
+.breadcrumb .sep{color:var(--muted)}
+.breadcrumb .cur{color:var(--text);font-weight:600}
+.topbar .spacer{flex:1}
+.session-pill{
+  display:flex;align-items:center;gap:7px;
+  background:var(--surface-2);border:1px solid var(--border);
+  color:var(--text-2);padding:6px 12px;border-radius:999px;
+  font-variant-numeric:tabular-nums;font-weight:600;font-size:13px;
+}
+.session-pill svg{width:15px;height:15px;color:var(--muted)}
+.topbar .divider{width:1px;height:24px;background:var(--border)}
+
+/* ---------- Content ---------- */
+.content{padding:28px 32px 48px;max-width:1360px;width:100%;margin:0 auto;animation:fade .28s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.page-head{margin-bottom:22px;display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.page-head .grow{flex:1;min-width:240px}
+h1.page-title{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
+.page-sub{color:var(--text-2);font-size:14.5px;margin:0}
+.head-actions{display:flex;gap:10px;align-items:center;margin-left:auto}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1px solid var(--border-2);background:var(--surface);color:var(--text);
+  padding:9px 15px;border-radius:10px;font-weight:600;font-size:13.5px;
+  transition:background .12s,border-color .12s,transform .05s;
+}
+.btn:hover{background:var(--surface-2)}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:var(--brand-2);border-color:var(--brand-2);color:#fff;box-shadow:0 4px 12px rgba(20,184,166,.28)}
+.btn-primary:hover{background:var(--brand-strong);border-color:var(--brand-strong)}
+.btn-ghost{background:none;border-color:var(--border)}
+
+/* ---------- Cards ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-pad{padding:20px}
+.section-label{
+  font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);display:flex;align-items:center;gap:8px;margin:26px 0 12px;
+}
+.section-label svg{width:15px;height:15px;color:var(--brand)}
+.grid{display:grid;gap:16px}
+
+/* ---------- Table ---------- */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse}
+thead th{
+  text-align:left;font-size:12.5px;font-weight:700;color:var(--text-2);
+  padding:14px 18px;border-bottom:1px solid var(--border);white-space:nowrap;
+}
+tbody td{padding:15px 18px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13.5px}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+.cell-strong{font-weight:600}
+.cell-sub{font-size:12px;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.tbl-foot{display:flex;align-items:center;gap:18px;padding:14px 18px;flex-wrap:wrap;color:var(--text-2);font-size:13px}
+.tbl-foot .grow{flex:1}
+.select-mini{border:1px solid var(--border-2);background:var(--surface);border-radius:8px;padding:5px 8px;color:var(--text);font-size:13px}
+.pager{display:flex;gap:4px}
+.pager button{width:32px;height:32px;border:1px solid var(--border);background:var(--surface);border-radius:8px;color:var(--text-2)}
+.pager button:hover:not(:disabled){background:var(--surface-2)}
+.pager button:disabled{opacity:.4;cursor:default}
+
+/* ---------- Badges & chips ---------- */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:12px;font-weight:700;line-height:1}
+.badge.green{background:var(--brand-tint);color:var(--brand-strong)}
+.badge.gray{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.badge.amber{background:var(--amber-tint);color:#b45309}
+.badge.red{background:var(--red-tint);color:#dc2626}
+.chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:linear-gradient(135deg,#fde68a,#fbbf24);color:#7c4a03}
+.chip.robot{background:linear-gradient(135deg,#fcd34d,#f59e0b);color:#6b3d02}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot.on{background:var(--green);box-shadow:0 0 0 3px rgba(22,163,74,.15)}
+.dot.off{background:var(--muted)}
+
+/* ---------- Action icons in table ---------- */
+.actions{display:flex;gap:4px;align-items:center}
+.act{width:32px;height:32px;border:0;background:none;border-radius:8px;color:var(--text-2);display:grid;place-items:center}
+.act:hover{background:var(--surface-2)}
+.act svg{width:16px;height:16px}
+.act.brand{color:var(--brand)}
+.act.brand:hover{background:var(--brand-tint)}
+.act.amber{color:var(--amber)}.act.amber:hover{background:var(--amber-tint)}
+.act.danger{color:var(--red)}.act.danger:hover{background:var(--red-tint)}
+
+/* ---------- Stat / telemetry cards ---------- */
+.tele-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.tele-card{padding:20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}
+.tele-card .name{font-weight:700;font-size:15px}
+.tele-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.tele-row{display:flex;align-items:center;justify-content:space-between;color:var(--text-2);font-size:13px;margin-top:8px}
+.tele-row .l{display:flex;align-items:center;gap:8px}
+.tele-row .l svg{width:15px;height:15px;color:var(--muted)}
+.batt{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.batt svg{width:18px;height:18px}
+
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:6px}
+.stat{padding:20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}
+.stat .top{display:flex;align-items:center;justify-content:space-between;color:var(--text-2);font-size:13px;font-weight:600}
+.stat .top svg{width:18px;height:18px;color:var(--brand)}
+.stat .big{font-size:30px;font-weight:800;margin-top:14px;letter-spacing:-.02em}
+.stat .cap{color:var(--muted);font-size:12.5px;margin-top:2px}
+
+/* ---------- Filters ---------- */
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px}
+.field label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text-2);text-transform:uppercase;margin-bottom:6px}
+.field select,.field input{
+  width:100%;border:1px solid var(--border-2);background:var(--surface);
+  color:var(--text);padding:10px 12px;border-radius:10px;font-size:13.5px;
+}
+.field input[type="datetime-local"]{color:var(--text-2)}
+
+/* ---------- Lifecycle timeline ---------- */
+.lifecycle{display:flex;gap:20px;flex-wrap:wrap}
+.lc{min-width:64px}
+.lc .k{font-size:10px;font-weight:700;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+.lc .v{font-size:12.5px;font-weight:700;color:var(--brand-strong);font-variant-numeric:tabular-nums}
+.lc.empty .v{color:var(--muted)}
+
+/* ---------- Empty state ---------- */
+.empty{
+  text-align:center;padding:56px 24px;color:var(--text-2);
+}
+.empty .ic{width:56px;height:56px;border-radius:16px;background:var(--brand-tint);color:var(--brand);display:grid;place-items:center;margin:0 auto 16px}
+.empty .ic svg{width:26px;height:26px}
+.empty h3{margin:0 0 6px;font-size:17px;font-weight:700;color:var(--text)}
+.empty p{margin:0 auto 18px;max-width:420px}
+
+/* ---------- Machine Call ---------- */
+.mc-head{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.mc-head .ic{width:52px;height:52px;border-radius:14px;background:var(--brand-tint);color:var(--brand);display:grid;place-items:center}
+.mc-head .ic svg{width:26px;height:26px}
+.mc-head h2{margin:0;font-size:26px;font-weight:800;letter-spacing:.02em}
+.mc-head .loc{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--brand-strong);display:flex;align-items:center;gap:5px;text-transform:uppercase}
+.mc-head .eng{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--amber);background:var(--amber-tint);padding:7px 12px;border-radius:999px;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.status-bar{
+  display:flex;align-items:center;gap:18px;
+  border:2px dashed var(--brand-tint-2);border-radius:16px;padding:18px 22px;margin:18px 0;background:var(--surface)
+}
+.status-bar .clk{width:46px;height:46px;border-radius:12px;background:var(--surface-2);display:grid;place-items:center;color:var(--muted)}
+.status-bar .k{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.status-bar .v{font-size:18px;font-weight:800;color:var(--brand-strong)}
+.status-bar .pipe{margin-left:auto;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.status-bar .pulse{border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center}
+.status-bar .pulse .k{color:var(--muted)}
+.status-bar .pulse b{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:800}
+
+.call-panel{border:1px solid var(--border);border-radius:20px;padding:22px;background:var(--surface);box-shadow:var(--shadow)}
+.call-reason{margin-bottom:18px}
+.call-reason .k{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--brand-strong);text-transform:uppercase;margin-bottom:8px}
+.call-reason select{border:1px solid var(--border-2);background:var(--surface);border-radius:10px;padding:9px 14px;font-weight:700;color:var(--text)}
+.call-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.call-btn{
+  border:1px solid var(--border);border-radius:18px;padding:40px 20px;
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  background:var(--surface-2);color:var(--muted);font-weight:800;letter-spacing:.06em;font-size:20px;
+  transition:transform .08s,box-shadow .12s;
+}
+.call-btn .cico{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--surface);color:var(--muted)}
+.call-btn .cico svg{width:28px;height:28px}
+.call-btn.primary{background:var(--brand-2);border-color:var(--brand-2);color:#fff;box-shadow:0 12px 30px rgba(20,184,166,.35)}
+.call-btn.primary .cico{background:rgba(255,255,255,.22);color:#fff}
+.call-btn.primary:hover{transform:translateY(-2px)}
+.call-foot{text-align:center;margin-top:20px;font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:7px}
+
+/* ---------- Area Monitor ---------- */
+.am-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.am-head .ic{width:48px;height:48px;border-radius:13px;background:var(--brand-tint);color:var(--brand);display:grid;place-items:center}
+.am-head h2{margin:0;font-size:26px;font-weight:800}
+.am-head .sub{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.am-head .live{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--brand-strong)}
+.am-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:20px}
+.map3d{position:relative;border-radius:16px;overflow:hidden;min-height:440px;background:#0b1220;border:1px solid var(--border)}
+.map3d canvas{display:block;width:100%;height:100%}
+.control-center{
+  position:absolute;top:18px;left:18px;width:220px;
+  background:rgba(13,20,34,.82);backdrop-filter:blur(6px);
+  border:1px solid rgba(45,212,191,.25);border-radius:14px;padding:16px;color:#cbd5e1;
+}
+.control-center h4{margin:0 0 12px;font-size:11px;font-weight:800;letter-spacing:.14em;color:#2dd4bf;text-transform:uppercase}
+.cc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;font-size:12px}
+.cc-row .kbd{background:#1e293b;border:1px solid #334155;border-radius:7px;padding:3px 8px;font-size:11px;color:#e2e8f0;font-family:ui-monospace,monospace}
+.cc-meta{border-top:1px solid #24344a;margin-top:12px;padding-top:12px;font-size:11px;color:#94a3b8}
+.cc-meta b{color:#e2e8f0}
+.cc-reset{width:100%;margin-top:14px;background:var(--brand-2);border:0;color:#fff;border-radius:10px;padding:9px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
+.robot-status .head,.order-q .head{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:800;margin-bottom:14px}
+.robot-status .head::before,.order-q .head::before{content:"";width:4px;height:18px;border-radius:2px;background:var(--brand)}
+.rstat{border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
+.rstat .r1{display:flex;align-items:center;justify-content:space-between}
+.rstat .idle{margin-top:12px;background:var(--surface-2);border-radius:9px;padding:9px 12px;color:var(--text-2);font-size:13px;display:flex;align-items:center;gap:8px}
+.order-q{margin-top:20px}
+.order-q .empty-q{text-align:center;color:var(--muted);padding:40px 10px;font-style:italic}
+
+/* ---------- Modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(2px);z-index:60;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+.overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:18px;box-shadow:var(--shadow-lg);width:100%;max-width:520px;animation:pop .2s ease}
+@keyframes pop{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:none}}
+.modal .m-head{display:flex;align-items:center;padding:20px 22px;border-bottom:1px solid var(--border)}
+.modal .m-head h3{margin:0;font-size:18px;font-weight:800}
+.modal .m-body{padding:22px;display:grid;gap:16px;max-height:64vh;overflow:auto}
+.modal .m-foot{padding:16px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+.form-field label{display:block;font-size:12px;font-weight:700;color:var(--brand-strong);margin-bottom:6px}
+.form-field .hint{font-size:12px;color:var(--muted);margin-top:5px}
+.form-field input,.form-field select,.form-field textarea{
+  width:100%;border:1px solid var(--border-2);background:var(--surface);color:var(--text);
+  padding:10px 12px;border-radius:10px;font-size:14px;font-family:inherit;
+}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* ---------- Toast ---------- */
+.toast-wrap{position:fixed;right:20px;bottom:20px;z-index:80;display:flex;flex-direction:column;gap:10px}
+.toast{background:var(--text);color:#fff;padding:12px 16px;border-radius:12px;font-size:13.5px;font-weight:600;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:10px;animation:slidein .25s ease}
+html[data-theme="dark"] .toast{background:#e6edf6;color:#0b1220}
+.toast svg{width:17px;height:17px;color:var(--brand-2)}
+@keyframes slidein{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* ---------- Mobile ---------- */
+.hamburger{display:none}
+.scrim{display:none}
+@media (max-width:960px){
+  .sidebar{position:fixed;left:0;top:0;margin-left:calc(-1 * var(--sidebar-w))}
+  .sidebar.open{margin-left:0;box-shadow:var(--shadow-lg)}
+  .hamburger{display:grid}
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:35}
+  .scrim.show{display:block}
+  .am-grid{grid-template-columns:1fr}
+  .call-grid{grid-template-columns:1fr}
+  .content{padding:22px 18px 40px}
+  h1.page-title{font-size:24px}
+}
+</style>
+<style>
+/* ============================================================
+   TAMBAHAN v2 — Harmonisasi 3 Gedung / PUSH-PULL / WO Queue
+   ============================================================ */
+
+/* ---- perbaikan: ukuran caret sidebar ---- */
+.nav-item .caret{width:16px;height:16px;flex:0 0 16px}
+.nav-item .ic{width:18px;height:18px;flex:0 0 18px}
+
+/* ---- Mode badge (EXISTING / NEXT) ---- */
+.mode-pill{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:5px 11px;border-radius:999px;font-size:11.5px;font-weight:800;
+  letter-spacing:.4px;text-transform:uppercase;border:1px solid transparent;white-space:nowrap;
+}
+.mode-pill.existing{background:var(--amber-tint);color:#b45309;border-color:rgba(245,158,11,.32)}
+.mode-pill.next{background:var(--brand-tint);color:var(--brand-strong);border-color:rgba(20,184,166,.35)}
+html[data-theme="dark"] .mode-pill.existing{color:#fbbf24}
+.mode-pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 7px}
+.flow-tag{
+  display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:6px;
+  font-size:10.5px;font-weight:800;letter-spacing:.5px;
+}
+.flow-tag.push{background:var(--amber-tint);color:#b45309}
+.flow-tag.pull{background:var(--brand-tint);color:var(--brand-strong)}
+html[data-theme="dark"] .flow-tag.push{color:#fbbf24}
+
+/* ---- Role switcher ---- */
+.role-switch{
+  display:flex;align-items:center;gap:8px;padding:5px 8px 5px 12px;
+  background:var(--surface-2);border:1px solid var(--border-2);border-radius:999px;
+}
+.role-switch label{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.3px}
+.role-switch select{
+  border:0;background:transparent;color:var(--text);font-weight:700;font-size:12.5px;
+  font-family:inherit;cursor:pointer;outline:none;max-width:230px;
+}
+.role-switch select option{background:var(--surface);color:var(--text)}
+
+/* ---- Building banner ---- */
+.bld-banner{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:16px 18px;border-radius:var(--radius);margin-bottom:18px;
+  background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);
+}
+.bld-banner .bico{
+  width:44px;height:44px;border-radius:12px;flex:0 0 44px;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(135deg,var(--brand-2),var(--brand));box-shadow:0 4px 12px rgba(20,184,166,.3);
+}
+.bld-banner .bico svg{width:23px;height:23px}
+.bld-banner h2{margin:0;font-size:18px;font-weight:800;letter-spacing:.2px}
+.bld-banner .sub{font-size:12.5px;color:var(--text-2);margin-top:2px}
+.bld-banner .grow{flex:1;min-width:150px}
+.bld-toggle{display:flex;background:var(--surface-2);border:1px solid var(--border-2);border-radius:10px;padding:3px;gap:3px}
+.bld-toggle button{
+  border:0;background:transparent;color:var(--text-2);font-weight:700;font-size:12px;
+  padding:7px 14px;border-radius:8px;transition:background .15s,color .15s;letter-spacing:.3px;
+}
+.bld-toggle button.on{background:var(--surface);color:var(--brand-strong);box-shadow:var(--shadow)}
+.bld-toggle button.on.amber{color:#b45309}
+
+/* ---- Supply point board ---- */
+.board-line{margin-bottom:22px}
+.board-line-head{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:11px 14px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--radius-sm) var(--radius-sm) 0 0;border-bottom:0;
+}
+.board-line-head .ln{font-weight:800;font-size:14.5px;letter-spacing:.2px}
+.board-line-head .sku{
+  font-size:11px;font-weight:800;color:var(--brand-strong);background:var(--brand-tint);
+  padding:3px 8px;border-radius:6px;letter-spacing:.3px;
+}
+.board-line-head .meta{font-size:11.5px;color:var(--muted);margin-left:auto;text-align:right;line-height:1.35}
+.pt-grid{
+  display:grid;gap:14px;padding:16px;
+  grid-template-columns:repeat(auto-fit,minmax(255px,1fr));
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:0 0 var(--radius-sm) var(--radius-sm);
+}
+.pt-card{
+  border:1px solid var(--border-2);border-radius:var(--radius-sm);
+  padding:14px;background:var(--surface);display:flex;flex-direction:column;gap:11px;
+  transition:border-color .15s,box-shadow .15s;
+}
+.pt-card:hover{border-color:var(--brand);box-shadow:var(--shadow)}
+.pt-card.st-empty{border-color:var(--red);background:var(--red-tint)}
+.pt-card.st-low{border-color:var(--amber)}
+.pt-card.st-calling{border-color:var(--brand);background:var(--brand-tint)}
+.pt-top{display:flex;align-items:flex-start;gap:10px}
+.pt-top .pico{
+  width:34px;height:34px;flex:0 0 34px;border-radius:9px;display:grid;place-items:center;
+  background:var(--brand-tint);color:var(--brand-strong);
+}
+.pt-top .pico svg{width:18px;height:18px}
+.pt-name{font-weight:800;font-size:13.5px;line-height:1.25}
+.pt-mat{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35}
+.pt-dest{
+  font-size:11.5px;color:var(--text-2);background:var(--surface-2);
+  border:1px dashed var(--border-2);border-radius:8px;padding:7px 9px;line-height:1.4;
+}
+.pt-dest b{color:var(--text);font-weight:700}
+.pt-status{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;flex-wrap:wrap;min-height:20px}
+.pt-status .s-dot{width:9px;height:9px;border-radius:50%;flex:0 0 9px}
+.s-ok{background:var(--green)} .s-low{background:var(--amber)} .s-empty{background:var(--red)}
+.s-calling{background:var(--brand);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+.pt-actions{display:flex;gap:8px;margin-top:auto}
+.btn-call{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  border:0;border-radius:10px;padding:13px 12px;font-weight:800;font-size:13.5px;
+  letter-spacing:.4px;color:#fff;background:var(--brand-2);
+  box-shadow:0 4px 12px rgba(20,184,166,.28);transition:filter .15s,transform .06s;
+}
+.btn-call:hover{filter:brightness(1.06)}
+.btn-call:active{transform:translateY(1px)}
+.btn-call svg{width:17px;height:17px}
+.btn-call.push{background:var(--amber);box-shadow:0 4px 12px rgba(245,158,11,.3)}
+.btn-call[disabled]{background:var(--border-2);color:var(--muted);box-shadow:none;cursor:not-allowed}
+.btn-sm-ghost{
+  border:1px solid var(--border-2);background:var(--surface);color:var(--text-2);
+  border-radius:10px;padding:0 12px;font-weight:700;font-size:12px;
+}
+.btn-sm-ghost:hover{border-color:var(--brand);color:var(--brand-strong)}
+
+/* ---- WO queue ---- */
+.wo-strip{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:var(--brand-tint);border:1px solid rgba(20,184,166,.28);
+  border-radius:var(--radius-sm);margin-bottom:14px;flex-wrap:wrap;
+}
+.wo-strip .lbl{font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--brand-strong)}
+.wo-strip .wo-id{font-weight:800;font-size:14px}
+.wo-strip .wo-sku{font-size:12px;color:var(--text-2)}
+.wo-strip .prog{margin-left:auto;font-size:12px;color:var(--text-2);font-weight:600}
+.wo-list{display:flex;flex-direction:column;gap:8px}
+.wo-row{
+  display:flex;align-items:center;gap:12px;padding:11px 13px;
+  border:1px solid var(--border-2);border-radius:var(--radius-sm);background:var(--surface);
+}
+.wo-row.running{border-color:var(--brand);background:var(--brand-tint)}
+.wo-row.done{opacity:.55}
+.wo-row .seq{
+  width:26px;height:26px;flex:0 0 26px;border-radius:8px;display:grid;place-items:center;
+  background:var(--surface-2);border:1px solid var(--border-2);font-size:11.5px;font-weight:800;color:var(--text-2);
+}
+.wo-row.running .seq{background:var(--brand-2);color:#fff;border-color:var(--brand-2)}
+.wo-row .wid{font-weight:800;font-size:13px}
+.wo-row .wsku{font-size:11.5px;color:var(--muted)}
+.wo-row .wqty{font-size:12px;color:var(--text-2);margin-left:auto;white-space:nowrap}
+.wo-row .wact{display:flex;gap:6px}
+.bar{height:6px;border-radius:999px;background:var(--border-2);overflow:hidden;min-width:90px;flex:0 0 90px}
+.bar i{display:block;height:100%;background:var(--brand-2);border-radius:999px}
+
+/* ---- Matrix (harmonisasi) ---- */
+.matrix-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+table.matrix{width:100%;border-collapse:collapse;font-size:12.5px;min-width:820px}
+table.matrix th,table.matrix td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+table.matrix thead th{background:var(--surface-2);font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-2);font-weight:800}
+table.matrix tbody tr:hover{background:var(--surface-2)}
+table.matrix td.grp{font-weight:800;background:var(--surface-2)}
+.tiny-tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:700;background:var(--surface-2);border:1px solid var(--border-2);color:var(--text-2)}
+
+/* ---- KPI row ---- */
+.kpi-row{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.kpi .t{font-size:11.5px;color:var(--text-2);font-weight:700;display:flex;align-items:center;gap:7px}
+.kpi .t svg{width:15px;height:15px;color:var(--brand)}
+.kpi .n{font-size:26px;font-weight:800;margin-top:7px;letter-spacing:-.5px}
+.kpi .c{font-size:11.5px;color:var(--muted);margin-top:3px}
+
+/* ---- Alert (transit kosong) ---- */
+.alert{
+  display:flex;align-items:flex-start;gap:11px;padding:13px 15px;border-radius:var(--radius-sm);
+  margin-bottom:16px;font-size:13px;line-height:1.5;
+}
+.alert svg{width:18px;height:18px;flex:0 0 18px;margin-top:1px}
+.alert.warn{background:var(--amber-tint);color:#92400e;border:1px solid rgba(245,158,11,.3)}
+.alert.ok{background:rgba(22,163,74,.10);color:#15803d;border:1px solid rgba(22,163,74,.32)}
+.alert.bad{background:var(--red-tint);color:#b91c1c;border:1px solid rgba(239,68,68,.35)}
+html[data-theme="dark"] .alert.ok{color:#4ade80}
+html[data-theme="dark"] .alert.bad{color:#fca5a5}
+.alert.bad .pulse-ring{width:10px;height:10px;border-radius:50%;background:var(--red);animation:blink 1s infinite;flex:0 0 10px;margin-top:5px}
+
+/* ---- Status task / andon ---- */
+.st-chip{
+  display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;
+  font-size:11.5px;font-weight:800;letter-spacing:.4px;border:1px solid transparent;cursor:pointer;
+  font-family:inherit;
+}
+.st-chip.done{background:rgba(22,163,74,.12);color:#15803d;border-color:rgba(22,163,74,.35)}
+.st-chip.andon{background:var(--red-tint);color:#b91c1c;border-color:rgba(239,68,68,.4)}
+.st-chip .d{width:8px;height:8px;border-radius:50%;background:currentColor;flex:0 0 8px}
+.st-chip.andon .d{animation:blink 1s infinite}
+html[data-theme="dark"] .st-chip.done{color:#4ade80}
+html[data-theme="dark"] .st-chip.andon{color:#fca5a5}
+.st-why{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4}
+.andon-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:12px}
+.andon-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;background:rgba(255,255,255,.55);border:1px solid rgba(239,68,68,.25);font-size:12.5px;font-weight:700}
+html[data-theme="dark"] .andon-item{background:rgba(0,0,0,.2)}
+.alert.info{background:var(--brand-tint);color:var(--brand-strong);border:1px solid rgba(20,184,166,.28)}
+html[data-theme="dark"] .alert.warn{color:#fcd34d}
+.alert b{font-weight:800}
+
+/* ---- Section heading with rule ---- */
+.sec{display:flex;align-items:center;gap:10px;margin:26px 0 14px;font-size:12px;font-weight:800;
+  letter-spacing:.6px;text-transform:uppercase;color:var(--text-2)}
+.sec svg{width:16px;height:16px;color:var(--brand)}
+.sec::after{content:"";flex:1;height:1px;background:var(--border)}
+
+/* ---- Big touch mode for PIC tablet ---- */
+.pic-panel{max-width:760px;margin:0 auto}
+.pic-hero{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:26px;text-align:center;box-shadow:var(--shadow);margin-bottom:18px;
+}
+.pic-hero .who{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:800}
+.pic-hero h2{margin:9px 0 4px;font-size:27px;font-weight:800;letter-spacing:-.4px}
+.pic-hero .loc{font-size:13.5px;color:var(--text-2)}
+.pic-big{
+  display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+}
+.pic-big button{
+  border:0;border-radius:var(--radius);padding:26px 16px;color:#fff;font-weight:800;font-size:17px;
+  letter-spacing:.6px;display:flex;flex-direction:column;align-items:center;gap:11px;
+  background:var(--brand-2);box-shadow:0 6px 18px rgba(20,184,166,.3);transition:filter .15s,transform .06s;
+}
+.pic-big button svg{width:30px;height:30px}
+.pic-big button:hover{filter:brightness(1.06)}
+.pic-big button:active{transform:translateY(2px)}
+.pic-big button.amber{background:var(--amber);box-shadow:0 6px 18px rgba(245,158,11,.3)}
+.pic-big button.ghost{background:var(--surface);color:var(--text-2);border:1px solid var(--border-2);box-shadow:none}
+.pic-big button[disabled]{background:var(--border-2);color:var(--muted);box-shadow:none;cursor:not-allowed}
+
+@media(max-width:640px){
+  .pt-grid{grid-template-columns:1fr;padding:12px}
+  .bld-banner{padding:14px}
+  .role-switch select{max-width:120px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><circle cx="9" cy="13" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.4" fill="currentColor" stroke="none"/><path d="M12 7V3"/><circle cx="12" cy="2.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <div class="txt"><b>AMR Autoxing</b><span>CBI — Supply Portal</span></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidebar-foot">
+      <div class="avatar" id="userAvatar">SA</div>
+      <div class="who"><b id="userName">Super Admin</b><span id="userRole">SUPER_ADMIN</span></div>
+      <button class="logout" title="Log out" onclick="toast('Logout adalah placeholder di demo ini')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      </button>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim" onclick="closeSidebar()"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn hamburger" onclick="toggleSidebar()" title="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+      <div class="breadcrumb" id="breadcrumb"></div>
+      <div class="spacer"></div>
+      <div class="role-switch" title="Ganti peran (demo)">
+        <label>PERAN</label>
+        <select id="roleSel" onchange="setRole(this.value)"></select>
+      </div>
+      <button class="icon-btn" id="themeBtn" title="Ganti tema" onclick="toggleTheme()"></button>
+      <div class="divider"></div>
+      <div class="avatar" id="avatarTop" style="width:34px;height:34px;font-size:12px">SA</div>
+    </header>
+    <main class="content" id="view"></main>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- ===== Modul Analisa Log .bag (AMRBag) — ditambahkan v3 ===== -->
+<script>
+/* =====================================================================
+   AMRBag — modul analisa log AMR (.bag) untuk dipasang di dashboard.
+   Dibangkitkan dari amr_bag_portal.html. Jangan diedit langsung.
+
+   Pakai:
+     <script src="amr-bag-module.js"><\/script>
+     AMRBag.mount(document.getElementById('kotak-konten'));
+     AMRBag.unmount();                       // saat pindah menu
+
+   Semua gaya dibatasi di dalam #ab-root, semua id berawalan ab-,
+   dan satu-satunya nama global adalah window.AMRBag.
+   Penyimpanan memakai kunci amr2_bag_arsip_v1 dan amr2_capa_v1
+   (mengikuti awalan dashboard), dengan migrasi dari kunci amr_ lama.
+   ===================================================================== */
+(function(){
+'use strict';
+
+const CSS = "#ab-root{--ab-floor:var(--bg,#E3E1DA);--ab-panel:var(--surface,#F5F4F0);--ab-line:var(--border-2,#C9C6BD);--ab-ink:var(--text,#1C2226);--ab-muted:var(--text-2,#6B7480);--ab-route:var(--brand-strong,#15607A);--ab-warn:var(--amber,#B8791A);--ab-fault:var(--red,#A32E26);--ab-ok:var(--green,#3F7A4B);}#ab-root *{box-sizing:border-box}#ab-root .num{font-variant-numeric:tabular-nums}#ab-root .ab-head{\n    display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;\n    padding:14px 22px;border-bottom:2px solid var(--ab-ink);background:var(--ab-panel);\n  }#ab-root .ab-head h1{font-size:17px;font-weight:650;margin:0;letter-spacing:-.01em}#ab-root .ab-head .sub{color:var(--ab-muted);font-size:13px}#ab-root .ab-head .spacer{flex:1}#ab-root button{\n    font:inherit;font-size:13px;padding:6px 14px;border:1px solid var(--ab-ink);\n    background:transparent;color:var(--ab-ink);cursor:pointer;border-radius:2px;\n  }#ab-root button:hover{background:var(--ab-ink);color:var(--ab-panel)}#ab-root button:focus-visible{outline:2px solid var(--ab-route);outline-offset:2px}#ab-root button[disabled]{opacity:.4;cursor:default}#ab-root /* ---------- layar awal ---------- */\n  #ab-drop{\n    height:100%;display:flex;flex-direction:column;\n    align-items:center;justify-content:center;gap:16px;padding:40px;text-align:center;\n  }#ab-root #ab-drop .zone{\n    border:2px dashed var(--ab-muted);padding:56px 64px;background:var(--ab-panel);\n    max-width:620px;\n  }#ab-root #ab-drop.hot .zone{border-color:var(--ab-route);background:#EAF2F5}#ab-root #ab-drop h2{margin:0 0 8px;font-size:22px;font-weight:650}#ab-root #ab-drop p{margin:6px 0;color:var(--ab-muted);max-width:52ch}#ab-root #ab-status{min-height:22px;color:var(--ab-route);font-size:14px}#ab-root /* ---------- tata letak utama ---------- */\n  #ab-app{display:none;height:100%;flex-direction:column}#ab-root #ab-verdict{\n    display:flex;gap:26px;flex-wrap:wrap;align-items:center;\n    padding:10px 22px;background:var(--ab-panel);border-bottom:1px solid var(--ab-line);\n  }#ab-root .kpi{display:flex;flex-direction:column;line-height:1.25}#ab-root .kpi b{font-size:19px;font-weight:650}#ab-root .kpi span{font-size:11.5px;color:var(--ab-muted)}#ab-root .badge{padding:4px 11px;border-radius:2px;font-size:13px;font-weight:600;color:#fff}#ab-root .badge.bad{background:var(--ab-fault)}#ab-root .badge.good{background:var(--ab-ok)}#ab-root .badge.warn{background:var(--ab-warn)}#ab-root #ab-stage{flex:1;display:grid;grid-template-columns:1fr 340px;min-height:0}#ab-root #ab-mapwrap{position:relative;border-right:1px solid var(--ab-line);min-height:0;background:#fff}#ab-root #ab-map{width:100%;height:100%;display:block}#ab-root #ab-maplabel{\n    position:absolute;left:12px;bottom:10px;background:rgba(245,244,240,.92);\n    padding:4px 9px;font-size:12px;border:1px solid var(--ab-line)\n  }#ab-root #ab-side{display:flex;flex-direction:column;min-height:0;background:var(--ab-panel)}#ab-root #ab-cam{width:100%;aspect-ratio:4/3;object-fit:cover;background:#2A2F33;display:block}#ab-root #ab-camnote{padding:6px 12px;font-size:12px;color:var(--ab-muted);border-bottom:1px solid var(--ab-line)}#ab-root #ab-state{padding:10px 14px;font-size:13px;overflow:auto}#ab-root #ab-state div{display:flex;justify-content:space-between;gap:12px;padding:3px 0;border-bottom:1px solid var(--ab-line)}#ab-root #ab-state span:first-child{color:var(--ab-muted)}#ab-root /* ---------- penggeser waktu ---------- */\n  #ab-scrub{padding:8px 22px;background:var(--ab-panel);border-top:1px solid var(--ab-line);border-bottom:1px solid var(--ab-line)}#ab-root #ab-ticks{position:relative;height:16px}#ab-root #ab-ticks i{position:absolute;top:2px;width:2px;height:12px;background:var(--ab-warn);cursor:pointer}#ab-root #ab-ticks i.f{background:var(--ab-fault);height:16px;top:0;width:3px}#ab-root #ab-time{width:100%;margin:0}#ab-root #ab-clock{font-size:12.5px;color:var(--ab-muted);display:flex;justify-content:space-between}#ab-root /* ---------- tab bawah ---------- */\n  nav{display:flex;gap:2px;padding:0 22px;background:var(--ab-panel)}#ab-root nav button{border:1px solid var(--ab-line);border-bottom:none;border-radius:2px 2px 0 0;padding:6px 16px}#ab-root nav button.on{background:var(--ab-ink);color:var(--ab-panel);border-color:var(--ab-ink)}#ab-root #ab-tabs{height:250px;overflow:auto;background:var(--ab-panel);border-top:1px solid var(--ab-ink);padding:12px 22px}#ab-root table{border-collapse:collapse;width:100%;font-size:13px}#ab-root th{text-align:left;font-weight:600;color:var(--ab-muted);border-bottom:1px solid var(--ab-line);padding:5px 10px 5px 0;position:sticky;top:0;background:var(--ab-panel)}#ab-root td{padding:4px 10px 4px 0;border-bottom:1px solid var(--ab-line);vertical-align:top}#ab-root tr.click{cursor:pointer}#ab-root tr.click:hover td{background:#E9E7E0}#ab-root .tag{font-size:11px;padding:1px 7px;border:1px solid var(--ab-muted);color:var(--ab-muted);border-radius:2px;white-space:nowrap}#ab-root .tag.f{border-color:var(--ab-fault);color:var(--ab-fault);font-weight:600}#ab-root .tag.w{border-color:var(--ab-warn);color:var(--ab-warn)}#ab-root .tag.a{border-color:var(--ab-route);color:var(--ab-route)}#ab-root #ab-chart{width:100%;height:210px;display:block}#ab-root ul.find{margin:0;padding-left:18px}#ab-root ul.find li{margin-bottom:5px}#ab-root .hide{display:none}#ab-root .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}#ab-root .bar .grow{flex:1}#ab-root .note{font-size:12.5px;color:var(--ab-muted);margin:0 0 10px}#ab-root .hot{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--ab-line)}#ab-root .hot b{font-size:15px;min-width:54px}#ab-root form.capa{display:grid;grid-template-columns:130px 1fr 130px 1fr;gap:8px 10px;align-items:start;\n    background:#EDEBE4;padding:12px;border:1px solid var(--ab-line);margin-bottom:14px}#ab-root form.capa label{font-size:12.5px;color:var(--ab-muted);padding-top:6px}#ab-root form.capa input,\n#ab-root form.capa select,\n#ab-root form.capa textarea{\n    font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--ab-line);background:#fff;width:100%}#ab-root form.capa textarea{min-height:46px;resize:vertical}#ab-root form.capa .full{grid-column:2 / span 3}#ab-root form.capa .act{grid-column:1 / span 4;display:flex;gap:8px;justify-content:flex-end}#ab-root .st{font-size:11px;padding:1px 7px;border-radius:2px;color:#fff;white-space:nowrap}#ab-root .st.buka{background:var(--ab-fault)}#ab-root .st.jalan{background:var(--ab-warn)}#ab-root .st.tutup{background:var(--ab-ok)}\n\n#ab-root{display:flex;flex-direction:column;height:100%;min-height:520px;\n  background:var(--ab-floor);color:var(--ab-ink);\n  font:15px/1.5 \"Segoe UI\",system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums}\n#ab-root .ab-head{flex:0 0 auto}\n#ab-root #ab-drop{flex:1}\n#ab-root #ab-app{flex:1;min-height:0}\n\n#ab-root button{border-radius:var(--radius-sm,10px);border-color:var(--border-2,#C9C6BD);color:var(--ab-ink);font-weight:500}\n#ab-root button:hover{background:var(--brand-tint,#1C2226);color:var(--brand-strong,#F5F4F0);border-color:var(--brand,#1C2226)}\n#ab-root nav button{border-radius:var(--radius-sm,10px) var(--radius-sm,10px) 0 0}\n#ab-root nav button.on{background:var(--brand-tint,#1C2226);color:var(--brand-strong,#F5F4F0);border-color:var(--brand,#1C2226)}\n#ab-root input,#ab-root select,#ab-root textarea{border-radius:var(--radius-sm,10px);background:var(--surface,#fff);color:var(--ab-ink);border-color:var(--border-2,#C9C6BD)}\n#ab-root form.capa{background:var(--surface-2,#EDEBE4);border-radius:var(--radius,14px);border-color:var(--border-2,#C9C6BD)}\n#ab-root tr.click:hover td{background:var(--brand-tint,#E9E7E0)}\n#ab-root .zone{border-radius:var(--radius,14px);background:var(--surface,#F5F4F0);border-color:var(--border-2,#C9C6BD)}\n#ab-root #ab-mapwrap{background:#fff}\n#ab-root .ab-head{border-bottom:1px solid var(--border-2,#1C2226)}\n#ab-root{min-height:0}";
+const HTML = "<div class=\"ab-head\">\n  <h1>Pembaca Log AMR</h1>\n  <span class=\"sub\">file .bag Autoxing &middot; diproses lokal di browser, tidak ada data yang dikirim ke mana pun</span>\n  <span class=\"spacer\"></span>\n  <button id=\"ab-btnNew\" class=\"hide\">Buka file lain</button>\n  <button id=\"ab-btnCopy\" class=\"hide\">Salin ringkasan</button>\n</div>\n\n<div id=\"ab-drop\">\n  <div class=\"zone\">\n    <h2>Taruh file .bag di sini</h2>\n    <p>Atau klik untuk memilih file. Portal membaca rute, kamera depan, status task, dan semua alert dari satu file log robot.</p>\n    <p><button id=\"ab-pick\">Pilih file .bag</button></p>\n    <p id=\"ab-status\"></p>\n  </div>\n  <input type=\"file\" id=\"ab-file\" accept=\".bag\" style=\"display:none\">\n</div>\n\n<div id=\"ab-app\">\n  <div id=\"ab-verdict\"></div>\n  <div id=\"ab-stage\">\n    <div id=\"ab-mapwrap\">\n      <canvas id=\"ab-map\"></canvas>\n      <div id=\"ab-maplabel\"></div>\n    </div>\n    <div id=\"ab-side\">\n      <img id=\"ab-cam\" alt=\"kamera depan robot\">\n      <div id=\"ab-camnote\">kamera depan</div>\n      <div id=\"ab-state\"></div>\n    </div>\n  </div>\n  <div id=\"ab-scrub\">\n    <div id=\"ab-ticks\"></div>\n    <input type=\"range\" id=\"ab-time\" min=\"0\" max=\"600\" step=\"0.1\" value=\"0\">\n    <div id=\"ab-clock\"><span id=\"ab-tnow\">0 dtk</span><span id=\"ab-tend\"></span></div>\n  </div>\n  <nav>\n    <button data-tab=\"find\" class=\"on\">Temuan</button>\n    <button data-tab=\"tl\">Timeline</button>\n    <button data-tab=\"sp\">Kecepatan</button>\n    <button data-tab=\"log\">Log WARN/ERROR</button>\n    <button data-tab=\"tp\">Topic</button>\n    <button data-tab=\"ars\">Riwayat &amp; CAPA</button>\n  </nav>\n  <div id=\"ab-tabs\"></div>\n</div>";
+
+let root = null, gaya = null;
+
+
+/* =======================================================================
+   BAGIAN 1 — Parser ROS1 bag murni JavaScript (tanpa library apa pun)
+   ======================================================================= */
+const TD = new TextDecoder();
+
+function lz4Block(src, sIdx, sEnd, dst, dIdx){
+  while(sIdx < sEnd){
+    const token = src[sIdx++];
+    let litLen = token >> 4;
+    if(litLen === 15){ let b; do{ b = src[sIdx++]; litLen += b; }while(b === 255); }
+    for(let n=0;n<litLen;n++) dst[dIdx++] = src[sIdx++];
+    if(sIdx >= sEnd) break;
+    const offset = src[sIdx++] | (src[sIdx++] << 8);
+    let mLen = token & 15;
+    if(mLen === 15){ let b; do{ b = src[sIdx++]; mLen += b; }while(b === 255); }
+    mLen += 4;
+    let p = dIdx - offset;
+    for(let n=0;n<mLen;n++) dst[dIdx++] = dst[p++];
+  }
+  return dIdx;
+}
+function lz4Frame(src, expected){
+  let i = 4;                       // lewati magic
+  const flg = src[i++]; i++;       // FLG, BD
+  if((flg>>3)&1) i += 8;           // content size
+  if(flg&1) i += 4;                // dict id
+  i++;                             // header checksum
+  const blockChecksum = (flg>>4)&1;
+  const dst = new Uint8Array(expected);
+  let o = 0;
+  while(i + 4 <= src.length){
+    const bs = (src[i] | src[i+1]<<8 | src[i+2]<<16 | src[i+3]<<24) >>> 0; i += 4;
+    if(bs === 0) break;
+    const rawBlock = (bs & 0x80000000) !== 0;
+    const size = bs & 0x7FFFFFFF;
+    if(rawBlock){ dst.set(src.subarray(i, i+size), o); o += size; }
+    else { o = lz4Block(src, i, i+size, dst, o); }
+    i += size;
+    if(blockChecksum) i += 4;
+  }
+  return dst.subarray(0, o);
+}
+function fields(u8, dv, start, end){
+  const f = {}; let p = start;
+  while(p < end){
+    const len = dv.getUint32(p, true); p += 4;
+    const b = u8.subarray(p, p+len); p += len;
+    const eq = b.indexOf(61);
+    f[TD.decode(b.subarray(0, eq))] = b.subarray(eq+1);
+  }
+  return f;
+}
+const u32 = b => (b[0] | b[1]<<8 | b[2]<<16 | b[3]<<24) >>> 0;
+
+const PRIM = new Set(['bool','int8','uint8','char','byte','int16','uint16','int32',
+  'uint32','int64','uint64','float32','float64','string','time','duration']);
+
+function parseDefs(text, rootType){
+  const defs = {};
+  const blocks = text.split(/^=+$/m);
+  let name = rootType;
+  blocks.forEach((blk, idx) => {
+    let body = blk;
+    if(idx > 0){
+      const m = blk.match(/^\s*MSG:\s*(\S+)/m);
+      if(!m) return;
+      name = m[1];
+      body = blk.slice(blk.indexOf(m[0]) + m[0].length);
+    }
+    const pkg = name.includes('/') ? name.split('/')[0] : 'std_msgs';
+    const flds = [];
+    for(let line of body.split('\n')){
+      const h = line.indexOf('#'); if(h >= 0) line = line.slice(0, h);
+      line = line.trim(); if(!line) continue;
+      const parts = line.split(/\s+/);
+      if(parts.length < 2) continue;
+      if(parts[1].includes('=') || parts[2] === '=') continue;   // konstanta, lewati
+      let type = parts[0]; const fname = parts[1];
+      let isArr = false, arrLen = -1;
+      const am = type.match(/^(.+)\[(\d*)\]$/);
+      if(am){ isArr = true; type = am[1]; arrLen = am[2] ? parseInt(am[2]) : -1; }
+      if(!PRIM.has(type) && !type.includes('/'))
+        type = (type === 'Header') ? 'std_msgs/Header' : pkg + '/' + type;
+      flds.push({name:fname, type, isArr, arrLen});
+    }
+    defs[name] = flds;
+    if(name.includes('/')) defs[name.split('/').pop()] = flds;
+  });
+  return defs;
+}
+function readPrim(dv, u8, p, type){
+  switch(type){
+    case 'bool': return [!!u8[p], p+1];
+    case 'int8': return [dv.getInt8(p), p+1];
+    case 'uint8': case 'char': case 'byte': return [u8[p], p+1];
+    case 'int16': return [dv.getInt16(p,true), p+2];
+    case 'uint16': return [dv.getUint16(p,true), p+2];
+    case 'int32': return [dv.getInt32(p,true), p+4];
+    case 'uint32': return [dv.getUint32(p,true), p+4];
+    case 'int64': return [Number(dv.getBigInt64(p,true)), p+8];
+    case 'uint64': return [Number(dv.getBigUint64(p,true)), p+8];
+    case 'float32': return [dv.getFloat32(p,true), p+4];
+    case 'float64': return [dv.getFloat64(p,true), p+8];
+    case 'string': { const n = dv.getUint32(p,true); p += 4; return [TD.decode(u8.subarray(p,p+n)), p+n]; }
+    case 'time': case 'duration': return [dv.getUint32(p,true) + dv.getUint32(p+4,true)/1e9, p+8];
+  }
+  throw new Error('tipe tidak dikenal: ' + type);
+}
+const PSIZE = {bool:1,int8:1,uint8:1,char:1,byte:1,int16:2,uint16:2,int32:4,uint32:4,
+               int64:8,uint64:8,float32:4,float64:8,time:8,duration:8};
+function deser(dv, u8, p, type, defs){
+  if(PRIM.has(type)) return readPrim(dv, u8, p, type);
+  const flds = defs[type] || defs[type.split('/').pop()];
+  if(!flds) throw new Error('definisi hilang: ' + type);
+  const obj = {};
+  for(const f of flds){
+    if(f.isArr){
+      let n = f.arrLen;
+      if(n < 0){ n = dv.getUint32(p,true); p += 4; }
+      if(f.type === 'uint8' || f.type === 'char' || f.type === 'byte'){
+        obj[f.name] = u8.subarray(p, p+n); p += n;            // biner mentah (gambar/peta)
+      } else if(PSIZE[f.type]){
+        const arr = new Array(n);
+        for(let k=0;k<n;k++){ const r = readPrim(dv,u8,p,f.type); arr[k] = r[0]; p = r[1]; }
+        obj[f.name] = arr;
+      } else {
+        const arr = new Array(n);
+        for(let k=0;k<n;k++){ const r = deser(dv,u8,p,f.type,defs); arr[k] = r[0]; p = r[1]; }
+        obj[f.name] = arr;
+      }
+    } else {
+      const r = deser(dv, u8, p, f.type, defs); obj[f.name] = r[0]; p = r[1];
+    }
+  }
+  return [obj, p];
+}
+// topic berat yang tidak dipakai panel mana pun — dilewati supaya hemat memori
+const SKIP = t => t === '/tf' || t === '/tf_static' || t.includes('points')
+  || t.includes('costmap') || t.includes('depth_camera') || t.includes('dwa_candidate');
+
+function readBag(buffer){
+  const u8 = new Uint8Array(buffer), dv = new DataView(buffer);
+  // baris pertama harus "#ROSBAG V2.0" - kalau tidak, file ini bukan bag ROS1
+  const magic = TD.decode(u8.subarray(0, 13));
+  if(!magic.startsWith('#ROSBAG V2.0'))
+    throw new Error('file ini bukan bag ROS1' +
+      (magic.startsWith('#ROSBAG') ? ' versi 2.0 (terbaca "' + magic.trim() + '")' : ''));
+  let p = 0; while(p < u8.length && u8[p] !== 10) p++; p++;
+  const conns = {}, msgs = [];
+  let tMin = Infinity, tMax = -Infinity, truncated = false;
+  function inner(buf){
+    const idv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+    let q = 0;
+    while(q + 4 <= buf.length){
+      try{
+      const hl = idv.getUint32(q,true); q += 4;
+      const f = fields(buf, idv, q, q+hl); q += hl;
+      const dl = idv.getUint32(q,true); q += 4;
+      const op = f.op[0];
+      if(op === 7){
+        const id = u32(f.conn), cf = fields(buf, idv, q, q+dl);
+        conns[id] = {id, topic:TD.decode(f.topic), type:TD.decode(cf.type),
+                     def:TD.decode(cf.message_definition), count:0};
+      } else if(op === 2){
+        const id = u32(f.conn), c = conns[id];
+        if(c){
+          c.count++;
+          if(!SKIP(c.topic)){
+            const t = u32(f.time.subarray(0,4)) + u32(f.time.subarray(4,8))/1e9;
+            if(t < tMin) tMin = t; if(t > tMax) tMax = t;
+            msgs.push({id, t, dv:idv, u8:buf, off:q});
+          }
+        }
+      }
+      q += dl;
+      }catch(err){ truncated = true; return; }   // chunk terpotong: simpan yang sempat terbaca
+    }
+  }
+  while(p + 4 <= u8.length){
+    try{
+    const hl = dv.getUint32(p,true); p += 4;
+    const f = fields(u8, dv, p, p+hl); p += hl;
+    const dl = dv.getUint32(p,true); p += 4;
+    const op = f.op[0];
+    if(op === 5){
+      const comp = TD.decode(f.compression), size = u32(f.size);
+      if(comp !== 'none' && comp !== 'lz4')
+        throw new Error('kompresi "' + comp + '" belum didukung portal ini. ' +
+          'Minta vendor merekam dengan lz4 atau tanpa kompresi, ' +
+          'atau konversi lebih dulu: rosbag decompress namafile.bag');
+      const raw = u8.subarray(p, p+dl);
+      inner(comp === 'none' ? raw : lz4Frame(raw, size));
+    } else if(op === 7){
+      const id = u32(f.conn), cf = fields(u8, dv, p, p+dl);
+      conns[id] = {id, topic:TD.decode(f.topic), type:TD.decode(cf.type),
+                   def:TD.decode(cf.message_definition), count:(conns[id]||{}).count||0};
+    }
+    p += dl;
+    }catch(err){
+      if(/belum didukung/.test(err.message)) throw err;   // kompresi: harus dilaporkan apa adanya
+      truncated = true; break;                            // sisanya: pakai bagian yang utuh
+    }
+  }
+  for(const id in conns) conns[id].defs = parseDefs(conns[id].def, conns[id].type);
+  msgs.sort((a,b) => a.t - b.t);
+  if(!msgs.length) throw new Error('tidak ada pesan yang bisa dibaca di file ini');
+  return {conns, msgs, t0:tMin, t1:tMax, truncated};
+}
+
+/* =======================================================================
+   BAGIAN 2 — Analisis: ubah pesan mentah jadi temuan
+   ======================================================================= */
+const V_MOVING = 0.05;          // m/s, ambang "bergerak"
+const IDLE_MIN = 15;            // detik, ambang blok diam yang dilaporkan
+let B = null;                   // bag terparsir
+let A = null;                   // hasil analisis
+let camUrls = [];               // object URL frame kamera
+
+function dec(m){ const c = B.conns[m.id]; return deser(m.dv, m.u8, m.off, c.type, c.defs)[0]; }
+function topicMsgs(t){ return B.msgs.filter(m => B.conns[m.id].topic === t); }
+
+function analyse(fileName){
+  const rel = m => m.t - B.t0;
+  const dur = B.t1 - B.t0;
+
+  // --- rute (frame peta) ---
+  let pose = topicMsgs('/tracked_pose/low_frequency');
+  if(pose.length < 2) pose = topicMsgs('/fused_odom');
+  const path = pose.map(m => { const d = dec(m); return {t:rel(m), x:d.pose.pose.position.x, y:d.pose.pose.position.y}; });
+
+  // --- jarak & utilisasi dari posisi ---
+  let dist = 0, moving = 0; const idle = [];
+  let cur = null;
+  for(let i=1;i<path.length;i++){
+    const dt = path[i].t - path[i-1].t; if(dt <= 0) continue;
+    const d = Math.hypot(path[i].x-path[i-1].x, path[i].y-path[i-1].y);
+    dist += d;
+    if(d/dt > V_MOVING){ moving += dt; if(cur && cur[1]-cur[0] > IDLE_MIN) idle.push(cur); cur = null; }
+    else { cur = cur ? [cur[0], path[i].t] : [path[i-1].t, path[i].t]; }
+  }
+  if(cur && cur[1]-cur[0] > IDLE_MIN) idle.push(cur);
+
+  // --- kecepatan dari encoder roda (bukan turunan posisi: pose melompat saat relokalisasi) ---
+  const speed = topicMsgs('/wheel_control/wheel_state').map(m => {
+    const d = dec(m); return {t:rel(m), v:Math.abs((d.speed_left + d.speed_right)/2), estop:d.emergency_stop_pressed};
+  });
+  const vm = speed.filter(s => s.v > V_MOVING).map(s => s.v).sort((a,b)=>a-b);
+  const mean = vm.length ? vm.reduce((a,b)=>a+b,0)/vm.length : 0;
+  const p95 = vm.length ? vm[Math.floor(.95*vm.length)] : 0;
+
+  // --- kejadian ---
+  const ev = [];
+  topicMsgs('/all_actions').forEach(m => { const d = dec(m); ev.push({t:rel(m), kind:'aksi', txt:d.action + ' — ' + d.message}); });
+  let lastPoi = null;
+  topicMsgs('/planning_intent').forEach(m => { const d = dec(m);
+    if(d.poi_name && d.poi_name !== lastPoi){ ev.push({t:rel(m), kind:'tujuan', txt:'menuju POI "' + d.poi_name + '"'}); lastPoi = d.poi_name; }});
+  let jackMax = 0;
+  topicMsgs('/jack_state').forEach(m => { const d = dec(m);
+    jackMax = Math.max(jackMax, d.weight);
+    if(d.progress === 1 && d.weight > 0) ev.push({t:rel(m), kind:'jack', txt:'angkat selesai, beban terbaca ' + d.weight.toFixed(1) + ' kg'});
+    if(d.error_code) ev.push({t:rel(m), kind:'error', txt:'jack error ' + d.error_code + ' ' + d.error_message});
+  });
+  topicMsgs('/alerts').forEach(m => (dec(m).alerts||[]).forEach(a =>
+    ev.push({t:rel(m), kind:a.level >= 2 ? 'error' : 'peringatan', txt:'kode ' + a.code + ': ' + a.msg})));
+  topicMsgs('/events').forEach(m => { const d = dec(m);
+    ev.push({t:rel(m), kind:d.level >= 2 ? 'error' : 'peringatan', txt:'[' + d.part + '] kode ' + d.code + ': ' + d.message}); });
+  ev.sort((a,b) => a.t - b.t);
+  // /alerts dan /events sering melaporkan kejadian yang sama - buang duplikatnya
+  const seen = new Set(), ded = [];
+  for(const e of ev){
+    const key = Math.round(e.t*2) + '|' + e.kind + '|' + e.txt.replace(/^\[[^\]]+\]\s*/,'');
+    if(seen.has(key)) continue;
+    seen.add(key); ded.push(e);
+  }
+  ev.length = 0; ev.push(...ded);
+
+  // --- log node ---
+  const LV = {2:'DEBUG',4:'INFO',8:'WARN',16:'ERROR',32:'FATAL'};
+  const logs = [];
+  topicMsgs('/rosout').forEach(m => { const d = dec(m);
+    if(d.level >= 8) logs.push({t:rel(m), lvl:LV[d.level]||d.level, node:d.name, msg:d.msg}); });
+  logs.sort((a,b) => a.t - b.t);
+
+  // --- kamera ---
+  const cam = topicMsgs('/rgb_cameras/front/compressed').map(m => {
+    const d = dec(m);
+    return {t:rel(m), blob:new Blob([d.data.slice()], {type:'image/' + (d.format || 'jpeg')})};
+  });
+
+  // --- peta ---
+  let map = null;
+  const mi = topicMsgs('/map_image');
+  if(mi.length){
+    const d = dec(mi[0]);
+    map = {w:d.width, h:d.height, res:d.resolution, ox:d.origin.position.x, oy:d.origin.position.y,
+           blob:new Blob([d.data.slice()], {type:'image/png'})};
+  }
+  let mapName = '';
+  const info = topicMsgs('/map/info'); if(info.length) mapName = dec(info[0]).name;
+
+  // --- baterai ---
+  let batt = null;
+  const bs = topicMsgs('/battery_state');
+  if(bs.length){ const a = dec(bs[0]), z = dec(bs[bs.length-1]);
+    batt = {soc0:a.percentage*100, soc1:z.percentage*100, v0:a.voltage, v1:z.voltage,
+            cycles:z.cycle_count, soh:z.state_of_health}; }
+
+  // --- vonis: apakah task selesai? ---
+  const fault = ev.filter(e => e.kind === 'error');
+  const stuckLate = idle.some(([a,b]) => b > dur - 30 && b - a > 30);
+  const status = fault.length ? 'gagal' : (stuckLate ? 'menggantung' : 'bersih');
+
+  // --- topic ---
+  const tp = Object.values(B.conns).reduce((acc,c) => {
+    acc[c.topic] = {n:(acc[c.topic]?.n||0)+c.count, type:c.type}; return acc; }, {});
+
+  return {fileName, truncated:B.truncated, dur, path, dist, moving, idle, speed, mean, p95,
+          vmax:vm.length?vm[vm.length-1]:0, ev, logs, cam, map, mapName, batt,
+          jackMax, status, fault, tp, epoch:B.t0};
+}
+
+/* =======================================================================
+   BAGIAN 2b — Arsip lintas file: ledger kejadian + register CAPA
+   Disimpan di browser (localStorage) DAN bisa diekspor sebagai berkas JSON
+   supaya bisa ditaruh di shared drive dan dibaca orang lain.
+   ======================================================================= */
+const K_ARSIP = 'amr2_bag_arsip_v1', K_CAPA = 'amr2_capa_v1';
+let simpanAktif = true;
+function simpan(k, v){
+  try{ localStorage.setItem(k, JSON.stringify(v)); return true; }
+  catch(e){ simpanAktif = false; return false; }
+}
+function ambil(k, d){
+  try{ const t = localStorage.getItem(k); return t ? JSON.parse(t) : d; }
+  catch(e){ simpanAktif = false; return d; }
+}
+let arsip = ambil(K_ARSIP, []), capa = ambil(K_CAPA, []);
+// pindahkan data lama dari versi portal mandiri (awalan amr_) sekali saja
+(function(){
+  try{
+    [[K_ARSIP,'amr_bag_arsip_v1'],[K_CAPA,'amr_capa_v1']].forEach(([baru,lama]) => {
+      if(!localStorage.getItem(baru) && localStorage.getItem(lama))
+        localStorage.setItem(baru, localStorage.getItem(lama));
+    });
+    arsip = ambil(K_ARSIP, arsip); capa = ambil(K_CAPA, capa);
+  }catch(e){}
+})();
+
+function ringkasSesi(){
+  const kd = e => (e.txt.match(/kode (\d+)/) || [])[1] || '';
+  const pos = t => { const p = poseAt(t); return p ? {x:+p.x.toFixed(2), y:+p.y.toFixed(2)} : {x:null, y:null}; };
+  return {
+    // kunci: unit + waktu mulai, bukan nama file - file yang di-rename tidak terhitung dua kali
+    id: ((A.fileName.match(/^([A-Za-z0-9]+)_/) || [])[1] || '-') + '|' + Math.round(A.epoch),
+    file: A.fileName,
+    unit: (A.fileName.match(/^([A-Za-z0-9]+)_/) || [])[1] || '-',
+    peta: A.mapName || '-',
+    mulai: A.epoch, dur: A.dur, jarak: +A.dist.toFixed(1),
+    gerak: +(A.moving / A.dur).toFixed(3), vmean: +A.mean.toFixed(2),
+    jack: +A.jackMax.toFixed(1), status: A.status, terpotong: !!A.truncated,
+    kejadian: A.ev.filter(e => e.kind === 'error' || e.kind === 'peringatan')
+      .map(e => Object.assign({t:+e.t.toFixed(1), jenis:e.kind, kode:kd(e), txt:e.txt}, pos(e.t))),
+    macet: A.idle.filter(([a,b]) => A.ev.some(e => e.t >= a && e.t <= b &&
+        (e.kind === 'error' || e.kind === 'peringatan')))
+      .map(([a,b]) => Object.assign({mulai:Math.round(a), selesai:Math.round(b), lama:Math.round(b-a)}, pos(b)))
+  };
+}
+function simpanSesi(){
+  const r = ringkasSesi();
+  const i = arsip.findIndex(x => x.id === r.id);
+  if(i >= 0) arsip[i] = r; else arsip.push(r);       // file sama tidak dihitung dua kali
+  arsip.sort((a,b) => a.mulai - b.mulai);
+  simpan(K_ARSIP, arsip);
+}
+// Kelompokkan kejadian berdasarkan kedekatan lokasi (radius 3 m) -> titik rawan
+function titikRawan(peta){
+  const cl = [];
+  arsip.filter(s => !peta || s.peta === peta).forEach(s => {
+    const semua = s.kejadian.filter(k => k.x !== null)
+      .concat(s.macet.filter(m => m.x !== null).map(m => ({x:m.x, y:m.y, kode:'diam', txt:'macet ' + m.lama + ' dtk'})));
+    semua.forEach(k => {
+      let c = cl.find(c => Math.hypot(c.x - k.x, c.y - k.y) <= 3);
+      if(!c){ c = {x:k.x, y:k.y, n:0, sesi:new Set(), kode:new Set(), unit:new Set()}; cl.push(c); }
+      c.n++; c.sesi.add(s.id); c.unit.add(s.unit); if(k.kode) c.kode.add(k.kode);
+      c.x = (c.x * (c.n - 1) + k.x) / c.n; c.y = (c.y * (c.n - 1) + k.y) / c.n;
+    });
+  });
+  return cl.sort((a,b) => b.sesi.size - a.sesi.size || b.n - a.n);
+}
+function unduh(nama, isi, tipe){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([isi], {type:tipe}));
+  a.download = nama; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function csvKejadian(){
+  const baris = [['file','unit','tanggal_utc','detik','jenis','kode','x','y','keterangan']];
+  arsip.forEach(s => s.kejadian.forEach(k => baris.push([
+    s.file, s.unit, new Date(s.mulai * 1000).toISOString().slice(0,16).replace('T',' '),
+    k.t, k.jenis, k.kode, k.x, k.y, '"' + String(k.txt).replace(/"/g,'""') + '"'])));
+  return baris.map(r => r.join(',')).join('\n');
+}
+function csvCapa(){
+  const baris = [['titik','temuan','akar_masalah','korektif','preventif','pic','target','status','dibuat']];
+  capa.forEach(c => baris.push([c.titik, c.temuan, c.akar, c.korektif, c.preventif, c.pic, c.target, c.status, c.dibuat]
+    .map(v => '"' + String(v||'').replace(/"/g,'""') + '"')));
+  return baris.map(r => r.join(',')).join('\n');
+}
+
+/* =======================================================================
+   BAGIAN 3 — Tampilan
+   ======================================================================= */
+const $ = s => root.querySelector(s);
+let tNow = 0, mapImg = null, camIdx = -1;
+
+function fmtT(s){ const m = Math.floor(s/60); return m + ':' + String(Math.floor(s%60)).padStart(2,'0'); }
+
+function renderVerdict(){
+  const badge = {gagal:['bad','Task gagal'], menggantung:['warn','Task menggantung'], bersih:['good','Tanpa alert']}[A.status];
+  $('#ab-verdict').innerHTML =
+    '<span class="badge ' + badge[0] + '">' + badge[1] + '</span>' +
+    (A.truncated ? '<span class="badge warn">File terpotong</span>' : '') +
+    kpi(A.dist.toFixed(0) + ' m', 'jarak tempuh') +
+    kpi(Math.round(A.moving/A.dur*100) + '%', 'waktu bergerak') +
+    kpi(A.mean.toFixed(2) + ' m/s', 'kecepatan rata-rata jalan') +
+    kpi(A.jackMax.toFixed(1) + ' kg', 'beban terangkat maksimum') +
+    kpi(A.fault.length, 'error') +
+    kpi(A.logs.length, 'log WARN ke atas') +
+    (A.batt ? kpi(A.batt.soc0.toFixed(0) + '→' + A.batt.soc1.toFixed(0) + '%', 'baterai') : '');
+}
+const kpi = (b, s) => '<div class="kpi"><b>' + b + '</b><span>' + s + '</span></div>';
+
+function drawMap(){
+  const cv = $('#ab-map'), wrap = $('#ab-mapwrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  cv.width = W * devicePixelRatio; cv.height = H * devicePixelRatio;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  ctx.clearRect(0,0,W,H);
+  if(!A.path.length) return;
+
+  // kotak pandang: rute + margin 10 m
+  const xs = A.path.map(p=>p.x), ys = A.path.map(p=>p.y), pad = 10;
+  const bx0 = Math.min(...xs)-pad, bx1 = Math.max(...xs)+pad;
+  const by0 = Math.min(...ys)-pad, by1 = Math.max(...ys)+pad;
+  const sc = Math.min(W/(bx1-bx0), H/(by1-by0));
+  const offX = (W - (bx1-bx0)*sc)/2, offY = (H - (by1-by0)*sc)/2;
+  const X = x => (x-bx0)*sc + offX;
+  const Y = y => H - ((y-by0)*sc + offY);
+
+  if(mapImg && A.map){                       // latar peta gudang asli dari log
+    const m = A.map;
+    const sx = (bx0 - m.ox)/m.res, sy = m.h - (by1 - m.oy)/m.res;
+    const sw = (bx1-bx0)/m.res, sh = (by1-by0)/m.res;
+    ctx.globalAlpha = .55;
+    ctx.drawImage(mapImg, sx, sy, sw, sh, offX, offY, (bx1-bx0)*sc, (by1-by0)*sc);
+    ctx.globalAlpha = 1;
+  }
+  // rute: yang sudah dilewati pekat, sisanya tipis
+  ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(21,96,122,.25)';
+  ctx.beginPath(); A.path.forEach((p,i) => i ? ctx.lineTo(X(p.x),Y(p.y)) : ctx.moveTo(X(p.x),Y(p.y))); ctx.stroke();
+  ctx.strokeStyle = '#15607A';
+  ctx.beginPath();
+  A.path.filter(p => p.t <= tNow).forEach((p,i) => i ? ctx.lineTo(X(p.x),Y(p.y)) : ctx.moveTo(X(p.x),Y(p.y)));
+  ctx.stroke();
+
+  // penanda kejadian penting
+  A.ev.filter(e => e.kind === 'error' || e.kind === 'peringatan' || e.kind === 'jack').forEach(e => {
+    const p = poseAt(e.t); if(!p) return;
+    ctx.fillStyle = e.kind === 'error' ? '#A32E26' : e.kind === 'jack' ? '#3F7A4B' : '#B8791A';
+    ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), 5, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+  });
+  // titik rawan dari sesi LAIN pada peta yang sama - cincin kuning berongga
+  titikRawan(A.mapName).forEach(c => {
+    if(c.sesi.size < 2) return;   // cincin hanya untuk titik yang berulang di lebih dari satu sesi
+    ctx.strokeStyle = '#B8791A'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(X(c.x), Y(c.y), 11, 0, 7); ctx.stroke();
+    ctx.fillStyle = '#B8791A'; ctx.font = '11px system-ui';
+    ctx.fillText(c.sesi.size + '×', X(c.x) + 13, Y(c.y) + 4);
+  });
+
+  // posisi robot sekarang
+  const r = poseAt(tNow);
+  if(r){
+    ctx.fillStyle = '#1C2226';
+    ctx.beginPath(); ctx.arc(X(r.x), Y(r.y), 7, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#F5F4F0'; ctx.lineWidth = 2.5; ctx.stroke();
+  }
+  // skala
+  ctx.strokeStyle = '#1C2226'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(W-90, H-22); ctx.lineTo(W-90+10*sc, H-22); ctx.stroke();
+  ctx.fillStyle = '#1C2226'; ctx.font = '12px system-ui';
+  ctx.fillText('10 m', W-88, H-28);
+  $('#ab-maplabel').textContent = (A.mapName ? 'peta ' + A.mapName + ' · ' : '') +
+    (r ? 'posisi ' + r.x.toFixed(1) + ', ' + r.y.toFixed(1) : '');
+}
+function poseAt(t){
+  if(!A.path.length) return null;
+  let lo = 0, hi = A.path.length-1;
+  while(lo < hi){ const mid = (lo+hi)>>1; if(A.path[mid].t < t) lo = mid+1; else hi = mid; }
+  return A.path[lo];
+}
+
+function showCam(){
+  if(!A.cam.length){ $('#ab-camnote').textContent = 'tidak ada frame kamera di log ini'; return; }
+  let i = 0;
+  for(let k=0;k<A.cam.length;k++) if(A.cam[k].t <= tNow) i = k;
+  if(i === camIdx) return;
+  camIdx = i;
+  $('#ab-cam').src = camUrls[i];
+  $('#ab-camnote').textContent = 'kamera depan · frame ' + (i+1) + ' dari ' + A.cam.length +
+    ' · detik ' + A.cam[i].t.toFixed(1);
+}
+
+function showState(){
+  const rows = [];
+  const near = (arr, f) => { let r = null; for(const a of arr) if(a.t <= tNow) r = a; return r ? f(r) : '—'; };
+  rows.push(['waktu', fmtT(tNow) + ' (' + tNow.toFixed(1) + ' dtk)']);
+  const p = poseAt(tNow);
+  rows.push(['posisi peta', p ? p.x.toFixed(2) + ', ' + p.y.toFixed(2) : '—']);
+  rows.push(['kecepatan', near(A.speed, s => s.v.toFixed(2) + ' m/s')]);
+  const lastEv = A.ev.filter(e => e.t <= tNow).slice(-1)[0];
+  rows.push(['kejadian terakhir', lastEv ? lastEv.txt.slice(0,60) : '—']);
+  if(A.batt) rows.push(['baterai', A.batt.soc1.toFixed(0) + '% · ' + A.batt.cycles + ' siklus']);
+  rows.push(['jam robot', new Date((A.epoch + tNow)*1000).toISOString().slice(11,19) + ' UTC']);
+  $('#ab-state').innerHTML = rows.map(r => '<div><span>' + r[0] + '</span><span>' + r[1] + '</span></div>').join('');
+}
+
+function renderTicks(){
+  const box = $('#ab-ticks'); box.innerHTML = '';
+  A.ev.filter(e => e.kind === 'error' || e.kind === 'peringatan').forEach(e => {
+    const i = document.createElement('i');
+    i.style.left = (e.t/A.dur*100) + '%';
+    if(e.kind === 'error') i.className = 'f';
+    i.title = 'detik ' + e.t.toFixed(0) + ' — ' + e.txt;
+    i.onclick = () => seek(e.t);
+    box.appendChild(i);
+  });
+}
+
+/* ---------- tab ---------- */
+function tabFind(){
+  const li = [];
+  const pct = Math.round(A.moving/A.dur*100);
+  if(A.truncated) li.push('<b style="color:var(--ab-warn)">File ini terpotong</b> — perekaman berhenti di tengah ' +
+    '(robot dimatikan atau proses log terputus). Angka di bawah hanya berlaku untuk bagian yang terbaca.');
+  li.push('Durasi log <b>' + fmtT(A.dur) + '</b>, jarak tempuh <b>' + A.dist.toFixed(1) + ' m</b>, ' +
+          'robot bergerak <b>' + pct + '%</b> dari waktu itu.');
+  li.push('Kecepatan saat bergerak: rata-rata <b>' + A.mean.toFixed(2) + '</b>, P95 ' + A.p95.toFixed(2) +
+          ', maksimum ' + A.vmax.toFixed(2) + ' m/s. Pakai angka rata-rata untuk menguji asumsi cycle time, bukan angka brosur.');
+  if(A.jackMax > 0) li.push('Beban terangkat maksimum <b>' + A.jackMax.toFixed(1) + ' kg</b>' +
+      (A.jackMax < 100 ? ' — muatan ringan, jadi log ini belum menguji perilaku pada beban penuh.' : '.'));
+  A.idle.forEach(([a,b]) => {
+    const p = poseAt(b);
+    const macet = A.ev.some(e => e.t >= a && e.t <= b && (e.kind === 'error' || e.kind === 'peringatan'));
+    li.push((macet ? '<b>Macet ' : 'Diam <b>') + Math.round(b-a) + ' detik</b> (detik ' + Math.round(a) + '–' + Math.round(b) + ')' +
+      (p ? ' di koordinat <b>' + p.x.toFixed(1) + ', ' + p.y.toFixed(1) + '</b>' : '') +
+      (macet ? ' — ada alert di rentang ini. Cek titik koordinat tersebut di layout gudang.'
+             : ' — tanpa alert, kemungkinan parkir atau menunggu perintah.'));
+  });
+  A.fault.forEach(e => li.push('<b style="color:var(--ab-fault)">Error detik ' + e.t.toFixed(0) + ':</b> ' + e.txt));
+  if(!A.fault.length && !A.idle.length) li.push('Tidak ada error atau kemacetan pada periode ini.');
+  const rep = {};
+  A.logs.forEach(l => { const k = l.node + ': ' + l.msg.split('(')[0].slice(0,60); rep[k] = (rep[k]||0)+1; });
+  const top = Object.entries(rep).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  top.forEach(([k,n]) => { if(n > 5) li.push('Log berulang <b>' + n + '×</b> — ' + k); });
+  if(A.batt) li.push('Baterai ' + A.batt.soc0.toFixed(0) + '% → ' + A.batt.soc1.toFixed(0) +
+    '%, siklus charge ke-' + A.batt.cycles + ' (indikasi seberapa sering unit dipakai).');
+  const jam = new Date(A.epoch*1000);
+  li.push('Jam internal robot: <b>' + jam.toISOString().slice(0,16).replace('T',' ') + ' UTC</b>. ' +
+    'Cocokkan dengan nama file — kalau beda, zona waktu robot belum di-set WIB dan atribusi shift akan meleset.');
+  return '<ul class="find">' + li.map(x => '<li>' + x + '</li>').join('') + '</ul>';
+}
+function tabTL(){
+  const cls = {error:'f', peringatan:'w', aksi:'a', tujuan:'a', jack:''};
+  return '<table><thead><tr><th style="width:70px">detik</th><th style="width:100px">jenis</th><th>kejadian</th><th style="width:130px">posisi</th></tr></thead><tbody>' +
+    A.ev.map(e => { const p = poseAt(e.t);
+      return '<tr class="click" data-t="' + e.t + '"><td>' + e.t.toFixed(1) + '</td><td><span class="tag ' +
+        (cls[e.kind]||'') + '">' + e.kind + '</span></td><td>' + esc(e.txt) + '</td><td>' +
+        (p ? p.x.toFixed(1) + ', ' + p.y.toFixed(1) : '') + '</td></tr>'; }).join('') +
+    '</tbody></table>';
+}
+function tabLog(){
+  if(!A.logs.length) return '<p>Tidak ada log level WARN ke atas.</p>';
+  return '<table><thead><tr><th style="width:70px">detik</th><th style="width:70px">level</th><th style="width:130px">node</th><th>pesan</th></tr></thead><tbody>' +
+    A.logs.map(l => '<tr class="click" data-t="' + l.t + '"><td>' + l.t.toFixed(1) + '</td><td><span class="tag ' +
+      (l.lvl === 'WARN' ? 'w' : 'f') + '">' + l.lvl + '</span></td><td>' + esc(l.node) + '</td><td>' +
+      esc(l.msg.slice(0,140)) + '</td></tr>').join('') + '</tbody></table>';
+}
+function tabTP(){
+  return '<table><thead><tr><th style="width:90px">pesan</th><th style="width:260px">topic</th><th>tipe</th></tr></thead><tbody>' +
+    Object.entries(A.tp).sort((a,b)=>b[1].n-a[1].n)
+      .map(([t,v]) => '<tr><td>' + v.n.toLocaleString('id') + '</td><td>' + esc(t) + '</td><td>' + esc(v.type) + '</td></tr>').join('') +
+    '</tbody></table>';
+}
+function tabSP(){ return '<canvas id="chart"></canvas>'; }
+
+function tabArs(){
+  const tgl = e => new Date(e*1000).toISOString().slice(0,16).replace('T',' ');
+  const rawan = titikRawan(A ? A.mapName : null);
+  let h = '';
+  if(!simpanAktif) h += '<p class="note">Browser ini memblokir penyimpanan lokal. ' +
+    'Riwayat tetap jalan selama tab terbuka — pakai tombol ekspor arsip agar tidak hilang.</p>';
+  h += '<div class="bar">' +
+    '<b>' + arsip.length + ' sesi tersimpan</b>' +
+    '<span class="grow"></span>' +
+    '<button id="expEv">Ekspor kejadian (CSV)</button>' +
+    '<button id="expCapa">Ekspor CAPA (CSV)</button>' +
+    '<button id="expArs">Simpan arsip (JSON)</button>' +
+    '<button id="impArs">Muat arsip (JSON)</button>' +
+    '<button id="delArs">Kosongkan arsip</button>' +
+    '<input type="file" id="fileArs" accept=".json" style="display:none">' +
+    '</div>';
+
+  h += '<p class="note">Arsip menumpuk setiap kali kamu membuka file .bag. ' +
+    'Titik rawan dikelompokkan dari kejadian yang berjarak kurang dari 3 meter — ' +
+    'yang muncul di banyak sesi berarti masalah lokasi, bukan kebetulan.</p>';
+
+  if(rawan.length){
+    h += '<h3 style="font-size:14px;margin:14px 0 6px">Titik rawan</h3>';
+    rawan.slice(0,12).forEach(c => {
+      h += '<div class="hot"><b>' + c.x.toFixed(1) + ', ' + c.y.toFixed(1) + '</b>' +
+        '<span>' + c.n + ' kejadian di <b>' + c.sesi.size + '</b> sesi' +
+        (c.kode.size ? ' · kode ' + [...c.kode].join(', ') : '') +
+        ' · unit ' + [...c.unit].join(', ') + '</span></div>';
+    });
+  } else h += '<p class="note">Belum ada kejadian bergeolokasi di arsip.</p>';
+
+  h += '<h3 style="font-size:14px;margin:18px 0 6px">Sesi</h3>' +
+    '<table><thead><tr><th>mulai (UTC)</th><th>file</th><th>unit</th><th>durasi</th><th>jarak</th>' +
+    '<th>gerak</th><th>beban</th><th>status</th><th>kejadian</th></tr></thead><tbody>' +
+    arsip.slice().reverse().map(s =>
+      '<tr><td>' + tgl(s.mulai) + '</td><td>' + esc(s.file.slice(0,34)) + '</td><td>' + esc(s.unit) + '</td>' +
+      '<td>' + fmtT(s.dur) + '</td><td>' + s.jarak + ' m</td><td>' + Math.round(s.gerak*100) + '%</td>' +
+      '<td>' + s.jack + ' kg</td><td><span class="tag ' +
+      (s.status === 'gagal' ? 'f' : s.status === 'menggantung' ? 'w' : '') + '">' + s.status +
+      (s.terpotong ? ' · terpotong' : '') + '</span></td><td>' + s.kejadian.length + '</td></tr>').join('') +
+    '</tbody></table>';
+
+  const opsi = ['<option value="umum">umum / bukan titik tertentu</option>']
+    .concat(rawan.slice(0,12).map(c => { const v = c.x.toFixed(1) + ', ' + c.y.toFixed(1);
+      return '<option value="' + v + '">' + v + ' (' + c.sesi.size + ' sesi)</option>'; })).join('');
+
+  h += '<h3 style="font-size:14px;margin:18px 0 6px">Register CAPA</h3>' +
+    '<form class="capa" id="fCapa">' +
+    '<label for="cTitik">Titik</label><select id="cTitik">' + opsi + '</select>' +
+    '<label for="cPic">PIC</label><input id="cPic" placeholder="ISD / WH / PPIC">' +
+    '<label for="cTemuan">Temuan</label><textarea id="cTemuan" class="full" placeholder="apa yang terjadi, berdasarkan data"></textarea>' +
+    '<label for="cAkar">Akar masalah</label><textarea id="cAkar" class="full" placeholder="hasil verifikasi lapangan, bukan dugaan dari log"></textarea>' +
+    '<label for="cKor">Korektif</label><textarea id="cKor" class="full" placeholder="tindakan segera"></textarea>' +
+    '<label for="cPre">Preventif</label><textarea id="cPre" class="full" placeholder="tindakan agar tidak berulang"></textarea>' +
+    '<label for="cTgt">Target</label><input id="cTgt" type="date">' +
+    '<label for="cSt">Status</label><select id="cSt"><option value="buka">buka</option>' +
+    '<option value="jalan">jalan</option><option value="tutup">tutup</option></select>' +
+    '<div class="act"><button type="button" id="cSave">Simpan CAPA</button></div></form>';
+
+  h += capa.length ? '<table><thead><tr><th>titik</th><th>temuan</th><th>korektif</th><th>preventif</th>' +
+    '<th>PIC</th><th>target</th><th>status</th><th></th></tr></thead><tbody>' +
+    capa.map((c,i) => '<tr><td>' + esc(c.titik) + '</td><td>' + esc(c.temuan) + '</td><td>' + esc(c.korektif) +
+      '</td><td>' + esc(c.preventif) + '</td><td>' + esc(c.pic) + '</td><td>' + esc(c.target||'') +
+      '</td><td><span class="st ' + c.status + '">' + c.status + '</span></td>' +
+      '<td><button class="capaNext" data-i="' + i + '">ubah status</button></td></tr>').join('') +
+    '</tbody></table>' : '<p class="note">Belum ada entri CAPA.</p>';
+  return h;
+}
+
+function pasangArs(){
+  const on = (id, fn) => { const el = document.getElementById('ab-' + id); if(el) el.onclick = fn; };
+  const stamp = () => new Date().toISOString().slice(0,10);
+  on('expEv', () => unduh('kejadian_amr.csv', csvKejadian(), 'text/csv'));
+  on('expCapa', () => unduh('capa_amr.csv', csvCapa(), 'text/csv'));
+  on('expArs', () => unduh('arsip_amr_' + stamp() + '.json',
+        JSON.stringify({arsip, capa}, null, 1), 'application/json'));
+  on('impArs', () => document.getElementById('ab-fileArs').click());
+  on('delArs', () => { if(confirm('Hapus seluruh riwayat dan CAPA di browser ini? Ekspor dulu kalau belum.')){
+        arsip = []; capa = []; simpan(K_ARSIP, arsip); simpan(K_CAPA, capa); renderTab(); } });
+  const fi = document.getElementById('ab-fileArs');
+  if(fi) fi.onchange = async e => {
+    const f = e.target.files[0]; if(!f) return;
+    try{
+      const d = JSON.parse(await f.text());
+      (d.arsip||[]).forEach(s => { if(!arsip.some(x => x.id === s.id)) arsip.push(s); });
+      (d.capa||[]).forEach(c => { if(!capa.some(x => x.dibuat === c.dibuat && x.temuan === c.temuan)) capa.push(c); });
+      arsip.sort((a,b) => a.mulai - b.mulai);
+      simpan(K_ARSIP, arsip); simpan(K_CAPA, capa); renderTab();
+    }catch(err){ alert('Berkas arsip tidak terbaca: ' + err.message); }
+  };
+  on('cSave', () => {
+    const v = id => { const el = document.getElementById('ab-' + id); return el ? el.value.trim() : ''; };
+    if(!v('cTemuan')){ alert('Isi temuan dulu.'); return; }
+    capa.push({titik:v('cTitik'), temuan:v('cTemuan'), akar:v('cAkar'), korektif:v('cKor'),
+               preventif:v('cPre'), pic:v('cPic'), target:v('cTgt'), status:v('cSt'), dibuat:new Date().toISOString()});
+    simpan(K_CAPA, capa); renderTab();
+  });
+  root.querySelectorAll('.capaNext').forEach(b => b.onclick = () => {
+    const urut = ['buka','jalan','tutup'], c = capa[+b.dataset.i];
+    c.status = urut[(urut.indexOf(c.status) + 1) % 3];
+    simpan(K_CAPA, capa); renderTab();
+  });
+}
+function drawChart(){
+  const cv = $('#ab-chart'); if(!cv) return;
+  const W = cv.clientWidth, H = 210;
+  cv.width = W*devicePixelRatio; cv.height = H*devicePixelRatio;
+  cv.style.height = H + 'px';
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  ctx.clearRect(0,0,W,H);
+  const L = 44, Bm = 24, vmax = Math.max(1, A.vmax*1.15);
+  const X = t => L + t/A.dur*(W-L-10);
+  const Y = v => H-Bm - v/vmax*(H-Bm-12);
+  ctx.strokeStyle = '#C9C6BD'; ctx.fillStyle = '#6B7480'; ctx.font = '11px system-ui'; ctx.lineWidth = 1;
+  for(let k=0;k<=4;k++){ const v = vmax*k/4;
+    ctx.beginPath(); ctx.moveTo(L,Y(v)); ctx.lineTo(W-10,Y(v)); ctx.stroke();
+    ctx.fillText(v.toFixed(1), 6, Y(v)+4); }
+  ctx.fillText('m/s', 6, 12);
+  for(let t=0;t<=A.dur;t+=60){ ctx.fillText(fmtT(t), X(t)-12, H-6); }
+  // blok diam
+  ctx.fillStyle = 'rgba(184,121,26,.15)';
+  A.idle.forEach(([a,b]) => ctx.fillRect(X(a), 12, X(b)-X(a), H-Bm-12));
+  // garis kecepatan
+  ctx.strokeStyle = '#15607A'; ctx.lineWidth = 1.5; ctx.beginPath();
+  A.speed.forEach((s,i) => i ? ctx.lineTo(X(s.t), Y(s.v)) : ctx.moveTo(X(s.t), Y(s.v)));
+  ctx.stroke();
+  // penanda error
+  A.ev.filter(e => e.kind === 'error').forEach(e => {
+    ctx.strokeStyle = '#A32E26'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(X(e.t), 12); ctx.lineTo(X(e.t), H-Bm); ctx.stroke(); });
+  // kursor waktu
+  ctx.strokeStyle = '#1C2226'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(X(tNow), 12); ctx.lineTo(X(tNow), H-Bm); ctx.stroke();
+  cv.onclick = ev => { const r = cv.getBoundingClientRect();
+    seek((ev.clientX - r.left - L)/(W-L-10)*A.dur); };
+}
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+let curTab = 'find';
+function renderTab(){
+  const f = {find:tabFind, tl:tabTL, sp:tabSP, log:tabLog, tp:tabTP, ars:tabArs}[curTab];
+  $('#ab-tabs').innerHTML = f();
+  if(curTab === 'sp') drawChart();
+  if(curTab === 'ars') pasangArs();
+  $('#ab-tabs').querySelectorAll('tr.click').forEach(tr =>
+    tr.onclick = () => seek(parseFloat(tr.dataset.t)));
+}
+function seek(t){
+  tNow = Math.max(0, Math.min(A.dur, t));
+  $('#ab-time').value = tNow;
+  $('#ab-tnow').textContent = fmtT(tNow) + ' · detik ' + tNow.toFixed(1);
+  drawMap(); showCam(); showState();
+  if(curTab === 'sp') drawChart();
+}
+
+/* =======================================================================
+   BAGIAN 4 — Muat file
+   ======================================================================= */
+async function load(file){
+  $('#ab-status').textContent = 'membaca ' + file.name + ' (' + (file.size/1048576).toFixed(1) + ' MB)…';
+  await new Promise(r => setTimeout(r, 30));
+  try{
+    if(file.size > 200 * 1048576)
+      $('#ab-status').textContent = 'file ' + (file.size/1048576).toFixed(0) +
+        ' MB — pemrosesan bisa lebih dari satu menit dan tab akan terasa membeku…';
+    const buf = await file.arrayBuffer();
+    $('#ab-status').textContent = 'membuka isi log…';
+    await new Promise(r => setTimeout(r, 30));
+    const t = performance.now();
+    B = readBag(buf);
+    A = analyse(file.name);
+    camUrls.forEach(URL.revokeObjectURL);
+    camUrls = A.cam.map(c => URL.createObjectURL(c.blob));
+    mapImg = null;
+    if(A.map){
+      mapImg = await createImageBitmap(A.map.blob).catch(() => null);
+    }
+    $('#ab-drop').style.display = 'none';
+    $('#ab-app').style.display = 'flex';
+    $('#ab-btnNew').classList.remove('hide');
+    $('#ab-btnCopy').classList.remove('hide');
+    root.querySelector('.ab-head .sub').textContent =
+      file.name + ' · ' + fmtT(A.dur) + ' · terbaca dalam ' + Math.round(performance.now()-t) + ' ms';
+    $('#ab-time').max = A.dur; $('#ab-tend').textContent = fmtT(A.dur);
+    simpanSesi();
+    renderVerdict(); renderTicks(); renderTab();
+    seek(0);
+  }catch(err){
+    $('#ab-status').textContent = 'Gagal membaca: ' + err.message +
+      '. Pastikan ini file .bag ROS1 dari robot, bukan hasil konversi.';
+    console.error(err);
+  }
+}
+function ringkasanTeks(){
+  const L = [];
+  L.push('RINGKASAN LOG AMR — ' + A.fileName);
+  L.push('Durasi ' + fmtT(A.dur) + ' | jarak ' + A.dist.toFixed(1) + ' m | bergerak ' +
+    Math.round(A.moving/A.dur*100) + '% | v rata-rata ' + A.mean.toFixed(2) + ' m/s | beban maks ' + A.jackMax.toFixed(1) + ' kg');
+  L.push('Status: ' + A.status);
+  L.push('');
+  L.push('KEJADIAN:');
+  A.ev.forEach(e => { const p = poseAt(e.t);
+    L.push('  ' + e.t.toFixed(1).padStart(6) + ' dtk [' + e.kind + '] ' + e.txt +
+      (p ? '  @ (' + p.x.toFixed(1) + ', ' + p.y.toFixed(1) + ')' : '')); });
+  if(A.idle.length){
+    L.push(''); L.push('BLOK DIAM > ' + IDLE_MIN + ' DETIK:');
+    A.idle.forEach(([a,b]) => { const p = poseAt(b);
+      L.push('  detik ' + Math.round(a) + '–' + Math.round(b) + ' (' + Math.round(b-a) + ' dtk)' +
+        (p ? '  @ (' + p.x.toFixed(1) + ', ' + p.y.toFixed(1) + ')' : '')); });
+  }
+  return L.join('\n');
+}
+
+function pasangSemua(){
+$('#ab-pick').onclick = () => $('#ab-file').click();
+$('#ab-file').onchange = e => e.target.files[0] && load(e.target.files[0]);
+$('#ab-drop').onclick = e => { if(e.target.id === 'drop' || e.target.className === 'zone') $('#ab-file').click(); };
+['dragenter','dragover'].forEach(k => $('#ab-drop').addEventListener(k, e => {
+  e.preventDefault(); $('#ab-drop').classList.add('hot'); }));
+['dragleave','drop'].forEach(k => $('#ab-drop').addEventListener(k, e => {
+  e.preventDefault(); $('#ab-drop').classList.remove('hot'); }));
+$('#ab-drop').addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if(f) load(f); });
+$('#ab-time').oninput = e => seek(parseFloat(e.target.value));
+$('#ab-btnNew').onclick = () => { $('#ab-app').style.display = 'none'; $('#ab-drop').style.display = 'flex';
+  $('#ab-status').textContent = ''; };
+$('#ab-btnCopy').onclick = async () => {
+  try{ await navigator.clipboard.writeText(ringkasanTeks()); $('#ab-btnCopy').textContent = 'Tersalin'; }
+  catch{ $('#ab-btnCopy').textContent = 'Tidak bisa menyalin'; }
+  setTimeout(() => $('#ab-btnCopy').textContent = 'Salin ringkasan', 1600);
+};
+root.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  root.querySelectorAll('nav button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); curTab = b.dataset.tab; renderTab(); });
+window.addEventListener('keydown', e => {
+  if(!A || !root || !root.isConnected) return;
+  if(e.key === 'ArrowRight') seek(tNow + (e.shiftKey ? 10 : 1));
+  if(e.key === 'ArrowLeft') seek(tNow - (e.shiftKey ? 10 : 1));
+});
+window.addEventListener('resize', () => { if(A && root && root.isConnected){ drawMap(); if(curTab === 'sp') drawChart(); } });
+
+}
+
+
+const AMRBag = {
+  mount(wadah){
+    if(!wadah) throw new Error('AMRBag.mount butuh elemen wadah');
+    if(root) AMRBag.unmount();
+    if(!document.getElementById('ab-gaya')){
+      gaya = document.createElement('style');
+      gaya.id = 'ab-gaya'; gaya.textContent = CSS;
+      document.head.appendChild(gaya);
+    }
+    root = document.createElement('div');
+    root.id = 'ab-root';
+    root.innerHTML = HTML;
+    wadah.appendChild(root);
+    pasangSemua();
+    return root;
+  },
+  unmount(){
+    if(root && root.parentNode) root.parentNode.removeChild(root);
+    root = null;
+  },
+  get terpasang(){ return !!(root && root.isConnected); },
+  // dibuka supaya dashboard bisa menampilkan ringkasan di halaman lain
+  get arsip(){ return arsip.slice(); },
+  get capa(){ return capa.slice(); },
+  titikRawan(peta){ return titikRawan(peta); }
+};
+window.AMRBag = AMRBag;
+})();
+
+</script>
+
+<script>
+/* =====================================================================
+   AMR AUTOXING CBI — PORTAL SUPPLY (v2, harmonisasi 3 gedung)
+   ---------------------------------------------------------------------
+   Gd A : Line 1-3 (Assy) + Line Charging A
+   Gd G : Line 4-7 (Assy)
+   Gd F : Line Charging F
+   Titik supply : Assy = Packaging / Cover / Separator, Charging = Packaging
+   EXISTING = supply ke AREA TRANSIT, dipicu operator WAREHOUSE  (PUSH)
+   NEXT     = supply ke TITIK SUPPLY LINE, dipicu PIC PRODUKSI   (PULL)
+   ===================================================================== */
+
+/* ---------- util: escape (mencegah HTML injection & render rusak) ---------- */
+function esc(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ---------- ICONS ---------- */
+const I = {
+  dashboard:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+  building:'<path d="M4 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"/><path d="M15 9h3a2 2 0 0 1 2 2v10"/><path d="M8 7h3M8 11h3M8 15h3"/><path d="M2 21h20"/>',
+  board:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>',
+  robots:'<rect x="4" y="7" width="16" height="12" rx="3"/><circle cx="9" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1" fill="currentColor" stroke="none"/><path d="M12 7V4"/>',
+  orders:'<rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 3h6v3H9z"/><path d="M9 11h6M9 15h4"/>',
+  wo:'<path d="m3 8 2 2 3-3"/><path d="m3 15 2 2 3-3"/><path d="M12 9h9M12 16h9"/>',
+  matrix:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  admin:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2 20a7 7 0 0 1 14 0"/><path d="M16 5.5a3.5 3.5 0 0 1 0 5"/><path d="M22 20a7 7 0 0 0-5-6.7"/>',
+  logs:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 8v5l3 2"/>',
+  box:'<path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+  cover:'<path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3H4Z"/><path d="M4 10v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M10 14h4"/>',
+  sep:'<rect x="3" y="4" width="18" height="5" rx="1"/><rect x="3" y="15" width="18" height="5" rx="1"/><path d="M3 12h18"/>',
+  charge:'<path d="M13 2 4 14h7l-1 8 9-12h-7Z"/>',
+  play:'<path d="M6 4l14 8-14 8Z"/>',
+  bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+  truck:'<rect x="1" y="6" width="13" height="10" rx="2"/><path d="M14 9h4l3 3v4h-7Z"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  warn:'<path d="M10.3 3.6 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>',
+  activity:'<path d="M3 12h4l3 8 4-16 3 8h4"/>',
+  bolt:'<path d="M13 2 4 14h7l-1 8 9-12h-7Z"/>',
+  battery:'<rect x="2" y="8" width="16" height="8" rx="2"/><path d="M22 11v2"/>',
+  refresh:'<path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/>',
+  pin:'<path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/>',
+  arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/>',
+  moon:'<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.5 6.5 0 0 0 21 12.8Z"/>',
+  chevR:'<path d="m9 6 6 6-6 6"/>'
+};
+function svg(name,cls){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${cls||''}">${I[name]||''}</svg>`;}
+function svgS(name,px){return svg(name).replace('<svg',`<svg width="${px}" height="${px}"`);}
+
+/* =====================================================================
+   MASTER STRUCTURE — struktur fisik pabrik (tetap, bukan data editable)
+   ===================================================================== */
+const BUILDINGS = [
+  {id:'A', name:'Gedung A', desc:'3 Line Assembly + 1 Line Charging'},
+  {id:'G', name:'Gedung G', desc:'4 Line Assembly'},
+  {id:'F', name:'Gedung F', desc:'1 Line Charging'}
+];
+const LINES = [
+  {id:'L01', name:'Line 1', bld:'A', type:'ASSY',     sku:'NS40',          ct:23.73, pp:225, cap:1100},
+  {id:'L02', name:'Line 2', bld:'A', type:'ASSY',     sku:'N100',          ct:37.29, pp:70,  cap:700},
+  {id:'L03', name:'Line 3', bld:'A', type:'ASSY',     sku:'NS60',          ct:23.73, pp:180, cap:1100},
+  {id:'CHA', name:'Line Charging A', bld:'A', type:'CHARGING'},
+  {id:'L04', name:'Line 4', bld:'G', type:'ASSY',     sku:'N120',          ct:43.50, pp:48,  cap:600},
+  {id:'L05', name:'Line 5', bld:'G', type:'ASSY',     sku:'N50',           ct:23.73, pp:120, cap:1100},
+  {id:'L06', name:'Line 6', bld:'G', type:'ASSY',     sku:'N70',           ct:23.73, pp:105, cap:1100},
+  {id:'L07', name:'Line 7', bld:'G', type:'ASSY',     sku:'N100/N200 HD',  ct:74.57, pp:24,  cap:350},
+  {id:'CHF', name:'Line Charging F', bld:'F', type:'CHARGING'}
+];
+const PTYPE = {
+  PACKAGING:{label:'Packaging', mat:'Karton Box & Styrofoam', icon:'box',   short:'PKG'},
+  COVER:    {label:'Cover',     mat:'Comp Cover',             icon:'cover', short:'CVR'},
+  SEPARATOR:{label:'Separator', mat:'Separator',              icon:'sep',   short:'SEP'}
+};
+const ASSY_POINTS = ['PACKAGING','COVER','SEPARATOR'];
+const CHG_POINTS  = ['PACKAGING'];
+
+function line(id){return LINES.find(l=>l.id===id);}
+function bld(id){return BUILDINGS.find(b=>b.id===id);}
+function linesOf(bId){return LINES.filter(l=>l.bld===bId);}
+function pointsOf(l){return l.type==='ASSY'?ASSY_POINTS:CHG_POINTS;}
+function pid(l,t){return l.id+'-'+PTYPE[t].short;}
+function allPoints(){const a=[];LINES.forEach(l=>pointsOf(l).forEach(t=>a.push({line:l,type:t,id:pid(l,t)})));return a;}
+/* Nama tujuan berbeda antara EXISTING (transit) dan NEXT (titik line) */
+function destOf(l,t,mode){
+  const s=PTYPE[t].short;
+  return mode==='NEXT'
+    ? {code:`TS-${l.id}-${s}`, label:`Titik Supply ${PTYPE[t].label} @ ${l.name}`, where:'di line'}
+    : {code:`TR-${l.id}-${s}`, label:`Titik Transit ${PTYPE[t].label} — area transit ${l.name}`, where:'area transit'};
+}
+
+/* =====================================================================
+   STATE STORE (localStorage, prefix amr2_)
+   ===================================================================== */
+const DB = {
+  get(k,fb){try{const v=localStorage.getItem('amr2_'+k);return v?JSON.parse(v):fb;}catch(e){return fb;}},
+  set(k,v){try{localStorage.setItem('amr2_'+k,JSON.stringify(v));}catch(e){MEM[k]=v;}},
+  del(k){try{localStorage.removeItem('amr2_'+k);}catch(e){delete MEM[k];}}
+};
+const MEM = {}; /* fallback bila localStorage diblokir */
+
+function seed(){
+  if(DB.get('seeded')) return;
+  /* mode per gedung: semua mulai dari kondisi EXISTING */
+  DB.set('modes',{A:'EXISTING',G:'EXISTING',F:'EXISTING'});
+  /* status stok tiap titik */
+  const st={};
+  allPoints().forEach(p=>{st[p.id]={stock:'OK',calling:false,last:null,qty:2};});
+  st['L02-PKG'].stock='LOW'; st['L02-PKG'].qty=1;
+  st['L05-CVR'].stock='EMPTY'; st['L05-CVR'].qty=0;
+  DB.set('pstate',st);
+  /* antrian WO per line assembly */
+  const wo={};
+  LINES.filter(l=>l.type==='ASSY').forEach((l,i)=>{
+    wo[l.id]=[
+      {id:`WO-${l.id}-001`, sku:l.sku, qty:l.cap, done:Math.round(l.cap*0.35), status:'RUNNING'},
+      {id:`WO-${l.id}-002`, sku:l.sku, qty:l.cap, done:0, status:'QUEUED'},
+      {id:`WO-${l.id}-003`, sku:l.sku, qty:Math.round(l.cap*0.6), done:0, status:'QUEUED'}
+    ];
+  });
+  LINES.filter(l=>l.type==='CHARGING').forEach(l=>{
+    wo[l.id]=[{id:`WO-${l.id}-001`, sku:'Charging Batch', qty:1, done:0, status:'RUNNING'}];
+  });
+  DB.set('wo',wo);
+  DB.set('orders',[]);
+  DB.set('robots',[
+    {sn:'AX-CBI-001',name:'Autoxing #001',ip:'192.168.110.210',bld:'A',battery:86,status:'online'},
+    {sn:'AX-CBI-002',name:'Autoxing #002',ip:'192.168.110.211',bld:'G',battery:64,status:'online'}
+  ]);
+  DB.set('logs',[]);
+  DB.set('assignedLine',{PACKAGING:'L01',COVER:'L01',SEPARATOR:'L01'});
+  /* halaman warisan v1 — diisi dari struktur pabrik */
+  DB.set('maps',BUILDINGS.map(b=>({name:`Peta ${b.name}`,id:`MAP-${b.id}`,area:b.name,updated:'—'})));
+  DB.set('areas',BUILDINGS.map(b=>({name:b.name,bld:b.id,map:`Peta ${b.name}`,mapId:`MAP-${b.id}`,
+    sync:'Not synced',robots:[]})));
+  DB.set('users',[
+    {name:'Super Admin',username:'admin',role:'SUPER_ADMIN',scope:'Semua gedung',status:'active'},
+    {name:'Operator Warehouse',username:'wh',role:'WAREHOUSE',scope:'Semua gedung (A, G, F)',status:'active'},
+    {name:'PIC Packaging',username:'pic.pkg',role:'PIC_PACKAGING',scope:'Titik Packaging',status:'active'},
+    {name:'PIC Cover',username:'pic.cvr',role:'PIC_COVER',scope:'Titik Cover',status:'active'},
+    {name:'PIC Separator',username:'pic.sep',role:'PIC_SEPARATOR',scope:'Titik Separator',status:'active'}
+  ]);
+  DB.set('tasks',[]);
+  DB.set('sessions',[]);
+  DB.set('seeded',true);
+}
+function resetAll(){
+  ['modes','pstate','wo','orders','robots','logs','assignedLine','maps','areas','users','tasks','sessions','ordFilter','andon','previewPt','seeded'].forEach(k=>DB.del(k));
+  seed(); toast('Data demo di-reset'); route();
+}
+seed();
+
+const modes = ()=>DB.get('modes',{A:'EXISTING',G:'EXISTING',F:'EXISTING'});
+const modeOf = b=>modes()[b]||'EXISTING';
+function setMode(b,m){const x=modes();x[b]=m;DB.set('modes',x);
+  logIt(`Mode ${bld(b).name} diubah ke ${m}`);
+  toast(`${bld(b).name} → mode ${m}`);route();}
+const pstate = ()=>DB.get('pstate',{});
+function setPoint(id,patch){const s=pstate();s[id]={...(s[id]||{}),...patch};DB.set('pstate',s);}
+
+/* =====================================================================
+   ROLES — siapa yang boleh memanggil AMR
+   ===================================================================== */
+const ROLES = [
+  {id:'SUPER_ADMIN',   name:'Super Admin',              kind:'ADMIN'},
+  {id:'WH',            name:'Operator Warehouse',       kind:'WH'},   /* satu akun, semua gedung */
+  {id:'PIC_PACKAGING', name:'PIC Produksi — Packaging', kind:'PIC', pt:'PACKAGING'},
+  {id:'PIC_COVER',     name:'PIC Produksi — Cover',     kind:'PIC', pt:'COVER'},
+  {id:'PIC_SEPARATOR', name:'PIC Produksi — Separator', kind:'PIC', pt:'SEPARATOR'}
+];
+const role = ()=>ROLES.find(r=>r.id===(DB.get('role','SUPER_ADMIN')))||ROLES[0];
+function setRole(id){DB.set('role',id);location.hash=defaultPage();renderChrome();route();}
+function defaultPage(){
+  const r=role();
+  if(r.kind==='PIC') return 'pic';
+  return 'dashboard';
+}
+function initials(s){return s.split(/[\s—-]+/).filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+
+/* =====================================================================
+   NAV — digenerate dari data, bukan hardcode
+   ===================================================================== */
+/* ---------------------------------------------------------------------
+   MENU REGISTRY — KONTRAK MENU.
+   Setiap halaman yang pernah ada di portal WAJIB terdaftar di sini.
+   Fungsi selfCheckMenus() di akhir file akan menolak diam-diam hilangnya
+   menu saat relayout: kalau ada id yang tidak punya halaman, muncul
+   peringatan di konsol DAN banner merah di Dashboard.
+   --------------------------------------------------------------------- */
+const MENU_REGISTRY = [
+  /* dari portal v1 — TIDAK BOLEH DIHAPUS */
+  {id:'dashboard', label:'Dashboard',        origin:'v1'},
+  {id:'areas',     label:'Areas',            origin:'v1'},
+  {id:'robots',    label:'Robots',           origin:'v1'},
+  {id:'maps',      label:'Maps',             origin:'v1'},
+  {id:'machines',  label:'Machines',         origin:'v1'},
+  {id:'orders',    label:'Orders',           origin:'v1'},
+  {id:'tasks',     label:'Tasks',            origin:'v1'},
+  {id:'users',     label:'Users',            origin:'v1'},
+  {id:'sessions',  label:'Sessions',         origin:'v1'},
+  {id:'logs',      label:'Activity Logs',    origin:'v1'},
+  {id:'machinecall',label:'Machine Call',    origin:'v1', dynamic:'line-'},
+  {id:'areamonitor',label:'Area Monitor',    origin:'v1', dynamic:'mon-'},
+  /* ditambahkan di v2 */
+  {id:'board',     label:'Papan Supply',     origin:'v2', dynamic:'bld-'},
+  {id:'wo',        label:'Antrian Work Order',origin:'v2'},
+  {id:'matrix',    label:'Matriks Harmonisasi',origin:'v2'},
+  {id:'pic',       label:'Panel PIC Produksi',origin:'v2'},
+  /* ditambahkan di v3 */
+  {id:'baglog',    label:'Analisa Log AMR',  origin:'v3'}
+];
+
+function navModel(){
+  const r=role();
+  if(r.kind==='PIC') return [
+    {id:'pic',   label:'Panggil AMR', icon:'bell'},
+    {id:'orders',label:'Orders — Riwayat Panggilan', icon:'orders'}
+  ];
+  const boardGrp = {id:'g-board', label:'Papan Supply', icon:'board',
+      children: BUILDINGS.map(b=>({id:'bld-'+b.id, label:b.name, icon:'building'}))};
+  const callGrp = {id:'g-call', label:'Machine Call', icon:'bell',
+      children: LINES.map(l=>({id:'line-'+l.id, label:l.name, icon:l.type==='CHARGING'?'charge':'board'}))};
+  const monGrp = {id:'g-mon', label:'Area Monitor', icon:'matrix',
+      children: BUILDINGS.map(b=>({id:'mon-'+b.id, label:b.name, icon:'building'}))};
+  const fleetGrp = {id:'g-fleet', label:'Fleet', icon:'robots', children:[
+      {id:'areas',   label:'Areas',    icon:'pin'},
+      {id:'robots',  label:'Robots',   icon:'robots'},
+      {id:'maps',    label:'Maps',     icon:'matrix'},
+      {id:'machines',label:'Machines', icon:'board'},
+      {id:'orders',  label:'Orders',   icon:'orders'},
+      {id:'tasks',   label:'Tasks',    icon:'wo'},
+      {id:'baglog',  label:'Analisa Log', icon:'logs'}
+    ]};
+
+  if(r.kind==='WH') return [
+    {id:'dashboard', label:'Dashboard', icon:'dashboard'},
+    boardGrp, callGrp, monGrp,
+    {id:'wo',     label:'Antrian Work Order', icon:'wo'},
+    {id:'orders', label:'Orders — Riwayat Panggilan',  icon:'orders'},
+    {id:'matrix', label:'Matriks Harmonisasi', icon:'matrix'}
+  ];
+  return [
+    {id:'dashboard', label:'Dashboard', icon:'dashboard'},
+    boardGrp, callGrp, monGrp,
+    {id:'wo',      label:'Antrian Work Order', icon:'wo'},
+    {id:'matrix',  label:'Matriks Harmonisasi',icon:'matrix'},
+    fleetGrp,
+    {id:'g-adm', label:'Administration', icon:'admin', children:[
+      {id:'users',    label:'Users',         icon:'users'},
+      {id:'sessions', label:'Sessions',      icon:'clock'},
+      {id:'logs',     label:'Activity Logs', icon:'logs'}
+    ]}
+  ];
+}
+let openGroups=new Set(['g-board','g-call','g-mon','g-fleet','g-adm']);
+function renderNav(){
+  const cur=curPage(), nav=document.getElementById('nav');
+  let html='';
+  navModel().forEach(item=>{
+    if(!item.children){
+      html+=`<div class="nav-group"><div class="nav-item ${cur===item.id?'active':''}" onclick="go('${item.id}')">${svg(item.icon,'ic')}<span>${esc(item.label)}</span></div></div>`;
+    }else{
+      const open = item.children.some(c=>c.id===cur) || openGroups.has(item.id);
+      html+=`<div class="nav-group">
+        <div class="nav-item parent ${open?'open':''}" onclick="toggleGroup('${item.id}')">${svg(item.icon,'ic')}<span>${esc(item.label)}</span>${svg('chevR','caret')}</div>
+        <div class="nav-children" style="${open?'':'display:none'}">
+          ${item.children.map(c=>`<div class="nav-item ${cur===c.id?'active':''}" onclick="go('${c.id}')">${svg(c.icon,'ic')}<span>${esc(c.label)}</span></div>`).join('')}
+        </div></div>`;
+    }
+  });
+  nav.innerHTML=html;
+}
+function toggleGroup(id){openGroups.has(id)?openGroups.delete(id):openGroups.add(id);renderNav();}
+function go(id){location.hash=id;closeSidebar();}
+function curPage(){return location.hash.replace('#','')||defaultPage();}
+
+/* =====================================================================
+   ROUTER
+   ===================================================================== */
+const TITLES = {dashboard:'Dashboard', wo:'Antrian Work Order', orders:'Orders — Riwayat Panggilan',
+  matrix:'Matriks Harmonisasi', robots:'Robots', logs:'Activity Logs', pic:'Panggil AMR',
+  areas:'Areas', maps:'Maps', machines:'Machines', tasks:'Tasks', users:'Users', sessions:'Sessions', baglog:'Analisa Log AMR'};
+const PARENT = {areas:'Fleet',robots:'Fleet',maps:'Fleet',machines:'Fleet',orders:'Fleet',tasks:'Fleet',
+  users:'Administration',sessions:'Administration',logs:'Administration',baglog:'Fleet'};
+function titleOf(id){
+  if(id.startsWith('bld-')){const b=bld(id.slice(4));return b?b.name:'—';}
+  if(id.startsWith('mon-')){const b=bld(id.slice(4));return b?'Monitor '+b.name:'—';}
+  if(id.startsWith('line-')){const l=line(id.slice(5));return l?l.name:'—';}
+  return TITLES[id]||'Dashboard';
+}
+function route(){
+  const id=curPage();
+  stopMap();                       /* cegah RAF loop menumpuk antar halaman */
+  if(window.AMRBag) AMRBag.unmount();   /* lepas modul analisa log */
+  renderNav();
+  const bc=document.getElementById('breadcrumb');
+  let crumb=`<span>Home</span>`;
+  const grp = id.startsWith('bld-')?'Papan Supply'
+            : id.startsWith('mon-')?'Area Monitor'
+            : id.startsWith('line-')?'Machine Call'
+            : PARENT[id];
+  if(grp) crumb+=`<span class="sep">${svgS('chevR',14)}</span><span>${esc(grp)}</span>`;
+  crumb+=`<span class="sep">${svgS('chevR',14)}</span><span class="cur">${esc(titleOf(id))}</span>`;
+  bc.innerHTML=crumb;
+  const view=document.getElementById('view');
+  let html;
+  if(id.startsWith('bld-'))       html=PAGES.building(id.slice(4));
+  else if(id.startsWith('mon-'))  html=PAGES.monitor(id.slice(4));
+  else if(id.startsWith('line-')) html=PAGES.lineCall(id.slice(5));
+  else html=(PAGES[id]||PAGES.dashboard)();
+  view.innerHTML=html;
+  if(id.startsWith('mon-')) startMap(id.slice(4));
+  if(id==='baglog') AMRBag.mount(document.getElementById('ab-host'));
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',route);
+
+function renderChrome(){
+  const r=role();
+  document.getElementById('userName').textContent=r.name;
+  document.getElementById('userRole').textContent=r.kind==='ADMIN'?'SUPER_ADMIN':(r.kind==='WH'?'WAREHOUSE OPERATOR':'PIC PRODUKSI');
+  const ini=initials(r.name);
+  document.getElementById('userAvatar').textContent=ini;
+  document.getElementById('avatarTop').textContent=ini;
+  const sel=document.getElementById('roleSel');
+  sel.innerHTML=ROLES.map(x=>`<option value="${x.id}" ${x.id===r.id?'selected':''}>${esc(x.name)}</option>`).join('');
+}
+
+/* =====================================================================
+   UI HELPERS
+   ===================================================================== */
+function head(title,sub,actions){
+  return `<div class="page-head"><div class="grow"><h1 class="page-title">${esc(title)}</h1>${sub?`<p class="page-sub">${sub}</p>`:''}</div>${actions?`<div class="head-actions">${actions}</div>`:''}</div>`;
+}
+function modePill(m){
+  return `<span class="mode-pill ${m==='NEXT'?'next':'existing'}"><span class="dot"></span>${m==='NEXT'?'NEXT — titik supply line':'EXISTING — area transit'}</span>`;
+}
+function flowTag(m){
+  return m==='NEXT'
+    ? `<span class="flow-tag pull">PULL · PIC PRODUKSI</span>`
+    : `<span class="flow-tag push">PUSH · OPERATOR WH</span>`;
+}
+function alertBox(kind,icon,html){return `<div class="alert ${kind}">${svg(icon)}<div>${html}</div></div>`;}
+
+/* WO aktif sebuah line */
+function activeWO(lineId){
+  const list=(DB.get('wo',{})[lineId])||[];
+  return list.find(w=>w.status==='RUNNING') || list.find(w=>w.status==='QUEUED') || null;
+}
+function stockLabel(s){return s==='EMPTY'?'KOSONG':(s==='LOW'?'MENIPIS':'AMAN');}
+function stockClass(s){return s==='EMPTY'?'s-empty':(s==='LOW'?'s-low':'s-ok');}
+
+/* =====================================================================
+   DISPATCH — inti "system call"
+   ===================================================================== */
+const inFlight={};
+function callAMR(lineId,type,opts){
+  opts=opts||{};
+  const l=line(lineId), m=modeOf(l.bld), key=pid(l,type);
+  if(inFlight[key]){toast('Panggilan untuk titik ini sedang diproses');return;}
+  inFlight[key]=true; setTimeout(()=>{delete inFlight[key];},4000);
+
+  const wo=activeWO(lineId);
+  const d=destOf(l,type,m);
+  const robots=DB.get('robots',[]).filter(r=>r.bld===l.bld && r.status==='online');
+  const r=role();
+  const order={
+    id:'ORD-'+Date.now().toString().slice(-8),
+    ts:new Date().toLocaleString('id-ID'),
+    mode:m, flow:(m==='NEXT'?'PULL':'PUSH'),
+    bld:l.bld, lineId:l.id, lineName:l.name,
+    type, material:PTYPE[type].mat,
+    destCode:d.code, destLabel:d.label,
+    wo: wo?wo.id:'—', sku: wo?wo.sku:(l.sku||'—'),
+    robot: robots.length?robots[0].sn:'BELUM ADA ROBOT',
+    status: robots.length?'ASSIGNED':'PENDING',
+    by: r.name
+  };
+  const list=DB.get('orders',[]); list.unshift(order); DB.set('orders',list);
+  setPoint(key,{calling:true,last:order.ts});
+  logIt(`${order.flow} · ${l.name} · ${PTYPE[type].label} → ${d.code} (${order.wo}) oleh ${r.name}`);
+  toast(`${order.flow} terkirim — ${l.name} · ${PTYPE[type].label} → ${d.code}`);
+
+  /* simulasi robot tiba: status titik kembali AMAN */
+  setTimeout(()=>{
+    setPoint(key,{calling:false,stock:'OK',qty:2});
+    const ls=DB.get('orders',[]); const o=ls.find(x=>x.id===order.id);
+    if(o){o.status='DELIVERED';DB.set('orders',ls);}
+    if(document.getElementById('view')) route();
+  }, 6000);
+  route();
+}
+function setStock(lineId,type,val){
+  setPoint(pid(line(lineId),type),{stock:val,qty:val==='OK'?2:(val==='LOW'?1:0)});
+  route();
+}
+function logIt(msg){
+  const l=DB.get('logs',[]);
+  l.unshift({time:new Date().toLocaleString('id-ID'),user:role().name,msg});
+  DB.set('logs',l.slice(0,200));
+}
+
+/* =====================================================================
+   PAGES
+   ===================================================================== */
+const PAGES={};
+
+/* ---------- DASHBOARD ---------- */
+PAGES.dashboard=function(){
+  const st=pstate(), orders=DB.get('orders',[]);
+  const pts=allPoints();
+  const empty=pts.filter(p=>(st[p.id]||{}).stock==='EMPTY');
+  const low=pts.filter(p=>(st[p.id]||{}).stock==='LOW');
+  const nextCount=BUILDINGS.filter(b=>modeOf(b.id)==='NEXT').length;
+  const openOrd=orders.filter(o=>o.status!=='DELIVERED').length;
+
+  const warn = statusBanner();
+
+  const bldCards = BUILDINGS.map(b=>{
+    const m=modeOf(b.id), ls=linesOf(b.id);
+    const np=ls.reduce((a,l)=>a+pointsOf(l).length,0);
+    const bad=ls.flatMap(l=>pointsOf(l).map(t=>st[pid(l,t)]||{})).filter(s=>s.stock==='EMPTY').length;
+    return `<div class="bld-banner" style="margin-bottom:12px">
+      <div class="bico">${svg('building')}</div>
+      <div class="grow">
+        <h2>${esc(b.name)}</h2>
+        <div class="sub">${esc(b.desc)} · ${ls.length} line · ${np} titik supply${bad?` · <b style="color:var(--red)">${bad} kosong</b>`:''}</div>
+      </div>
+      ${modePill(m)} ${flowTag(m)}
+      <button class="btn btn-ghost" onclick="go('bld-${b.id}')">Buka papan ${svgS('arrow',15)}</button>
+    </div>`;
+  }).join('');
+
+  const audit=selfCheckMenus();
+  const auditBox = (audit.missing.length||audit.noPage.length)
+    ? alertBox('warn','warn',`<b>Peringatan integritas menu.</b> Menu berikut terdaftar di MENU_REGISTRY tapi tidak tersedia: ${esc([...audit.missing,...audit.noPage].map(m=>m.label).join(', '))}. Kembalikan sebelum rilis.`)
+    : alertBox('info','check',`<b>Integritas menu OK.</b> Seluruh ${MENU_REGISTRY.length} menu terdaftar (${MENU_REGISTRY.filter(m=>m.origin==='v1').length} warisan portal v1 + ${MENU_REGISTRY.filter(m=>m.origin==='v2').length} baru) tersedia dan punya halaman.`);
+
+  return head('Dashboard Supply','',
+    `<button class="btn btn-ghost" onclick="resetAll()">${svg('refresh')} Reset demo</button>`)
+  + warn + auditBox
+  + `<div class="kpi-row">
+      <div class="kpi"><div class="t">${svg('building')}Gedung</div><div class="n">3</div><div class="c">A · G · F</div></div>
+      <div class="kpi"><div class="t">${svg('board')}Line</div><div class="n">${LINES.length}</div><div class="c">7 Assembly · 2 Charging</div></div>
+      <div class="kpi"><div class="t">${svg('pin')}Titik supply</div><div class="n">${pts.length}</div><div class="c">7×3 Assy + 2×1 Charging</div></div>
+      <div class="kpi"><div class="t">${svg('bolt')}Gedung mode NEXT</div><div class="n">${nextCount}/3</div><div class="c">sisanya masih EXISTING</div></div>
+      <div class="kpi"><div class="t">${svg('warn')}Titik kosong / menipis</div><div class="n" style="color:${empty.length?'var(--red)':(low.length?'var(--amber)':'var(--green)')}">${empty.length} / ${low.length}</div><div class="c">butuh tindakan</div></div>
+      <div class="kpi"><div class="t">${svg('truck')}Panggilan aktif</div><div class="n">${openOrd}</div><div class="c">dari ${orders.length} total</div></div>
+    </div>`
+  + `<div class="sec">${svg('building')}Papan per gedung</div>`
+  + bldCards
+  + `<div class="sec">${svg('orders')}Panggilan terakhir</div>`
+  + ordersTable(DB.get('orders',[]).slice(0,6));
+};
+
+/* ---------- PAPAN SUPPLY PER GEDUNG ---------- */
+PAGES.building=function(bId){
+  const b=bld(bId); if(!b) return PAGES.dashboard();
+  const m=modeOf(bId), st=pstate(), r=role();
+  const canPush = m==='EXISTING' && (r.kind==='ADMIN'||r.kind==='WH');
+  const canPull = m==='NEXT'     && (r.kind==='ADMIN'||r.kind==='PIC');
+
+  const banner=`<div class="bld-banner">
+    <div class="bico">${svg('building')}</div>
+    <div class="grow">
+      <h2>${esc(b.name)}</h2>
+      <div class="sub">${esc(b.desc)}</div>
+      <div style="margin-top:9px;display:flex;gap:8px;flex-wrap:wrap">${modePill(m)} ${flowTag(m)}</div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.4px;margin-bottom:6px;text-align:right">KONDISI SUPPLY</div>
+      <div class="bld-toggle">
+        <button class="${m==='EXISTING'?'on amber':''}" onclick="setMode('${bId}','EXISTING')">EXISTING</button>
+        <button class="${m==='NEXT'?'on':''}" onclick="setMode('${bId}','NEXT')">NEXT</button>
+      </div>
+    </div>
+  </div>`;
+
+  const explain = m==='EXISTING'
+    ? alertBox('warn','warn',`<b>Kondisi EXISTING — sistem PUSH (dorong).</b> Supply dikirim ke <b>area transit</b> tiap line. Yang menekan tombol adalah <b>operator warehouse</b> lewat tablet. Aturan: area transit <b>tidak boleh kosong</b> komponen — begitu status menipis/kosong, dorong sekarang.`)
+    : alertBox('info','info',`<b>Kondisi NEXT — sistem PULL (tarik).</b> Supply dikirim <b>langsung ke titik supply di line</b>. Yang menekan tombol adalah <b>PIC produksi</b> di titik masing-masing (Packaging / Cover / Separator) saat material di titiknya perlu diisi.`);
+
+  const blocks = linesOf(bId).map(l=>{
+    const wo=activeWO(l.id);
+    const isChg=l.type==='CHARGING';
+    const meta = isChg
+      ? 'Line Charging · titik supply: Packaging saja'
+      : `CT ${esc(l.ct)} dtk/pcs · ${esc(l.pp)} pcs/pallet · kapasitas ${esc(l.cap)}`;
+    const woStrip = wo ? `<div class="wo-strip">
+        <span class="lbl">WO AKTIF</span>
+        <span class="wo-id">${esc(wo.id)}</span>
+        <span class="wo-sku">${esc(wo.sku)}</span>
+        <span class="bar"><i style="width:${Math.min(100,Math.round(wo.done/wo.qty*100))}%"></i></span>
+        <span class="prog">${esc(wo.done)} / ${esc(wo.qty)} pcs · ${Math.round(wo.done/wo.qty*100)}%</span>
+      </div>` : '';
+    const cards = pointsOf(l).map(t=>{
+      const key=pid(l,t), s=st[key]||{stock:'OK'}, d=destOf(l,t,m);
+      const cls = s.calling?'st-calling':(s.stock==='EMPTY'?'st-empty':(s.stock==='LOW'?'st-low':''));
+      const enabled = (canPush||canPull) && !s.calling;
+      const btnLabel = m==='EXISTING'?'DORONG KE TRANSIT':'PANGGIL AMR';
+      return `<div class="pt-card ${cls}">
+        <div class="pt-top">
+          <div class="pico">${svg(PTYPE[t].icon)}</div>
+          <div><div class="pt-name">${esc(PTYPE[t].label)}</div><div class="pt-mat">${esc(PTYPE[t].mat)}</div></div>
+        </div>
+        <div class="pt-dest">${svgS('pin',13)} Tujuan <b>${esc(d.code)}</b><br>${esc(d.label)}</div>
+        <div class="pt-status">
+          <span class="s-dot ${s.calling?'s-calling':stockClass(s.stock)}"></span>
+          ${s.calling?'AMR dalam perjalanan…':'Status stok: '+stockLabel(s.stock)}
+          ${s.last?`<span style="margin-left:auto;font-weight:500;font-size:11px;color:var(--muted)">${esc(s.last)}</span>`:''}
+        </div>
+        <div class="pt-actions">
+          <button class="btn-call ${m==='EXISTING'?'push':''}" ${enabled?'':'disabled'} onclick="callAMR('${l.id}','${t}')">
+            ${svg(m==='EXISTING'?'truck':'bell')} ${btnLabel}
+          </button>
+          <button class="btn-sm-ghost" title="Ubah status stok (simulasi)" onclick="cycleStock('${l.id}','${t}')">${svgS('refresh',15)}</button>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="board-line">
+      <div class="board-line-head">
+        ${isChg?svgS('charge',17):svgS('board',17)}
+        <span class="ln">${esc(l.name)}</span>
+        ${l.sku?`<span class="sku">${esc(l.sku)}</span>`:''}
+        <span class="tiny-tag">${pointsOf(l).length} titik</span>
+        <span class="meta">${meta}</span>
+      </div>
+      <div class="pt-grid">${woStrip?`<div style="grid-column:1/-1">${woStrip}</div>`:''}${cards}</div>
+    </div>`;
+  }).join('');
+
+  const roleNote = (!canPush&&!canPull)
+    ? alertBox('warn','warn',`Peran <b>${esc(r.name)}</b> tidak berwenang memanggil AMR pada kondisi <b>${m}</b> di gedung ini. ${m==='EXISTING'?'Kondisi EXISTING dipicu operator warehouse.':'Kondisi NEXT dipicu PIC produksi di titik supply.'} Ganti peran di kanan atas untuk mencoba.`)
+    : '';
+
+  return head(b.name,`Papan supply ${esc(b.name)} — ${linesOf(bId).length} line, ${linesOf(bId).reduce((a,l)=>a+pointsOf(l).length,0)} titik supply.`)
+    + banner + statusBanner(linesOf(bId)) + explain + roleNote + blocks;
+};
+function cycleStock(lineId,type){
+  const cur=(pstate()[pid(line(lineId),type)]||{}).stock||'OK';
+  setStock(lineId,type, cur==='OK'?'LOW':(cur==='LOW'?'EMPTY':'OK'));
+}
+
+/* ---------- PANEL PIC PRODUKSI (tablet titik supply) ---------- */
+PAGES.pic=function(){
+  const r=role();
+  /* Admin & warehouse boleh melihat panel PIC dalam mode pratinjau */
+  const preview = r.kind!=='PIC';
+  const t = preview ? (DB.get('previewPt','PACKAGING')) : r.pt;
+  const assigned=DB.get('assignedLine',{})[t]||'L01';
+  const l=line(assigned), m=modeOf(l.bld), st=pstate();
+  const key=pid(l,t), s=st[key]||{stock:'OK'};
+  const wo=activeWO(l.id);
+  const d=destOf(l,t,m);
+  const eligible=LINES.filter(x=>pointsOf(x).includes(t));
+
+  const chips=eligible.map(x=>`<button class="btn ${x.id===assigned?'btn-primary':'btn-ghost'}" style="padding:8px 13px" onclick="assignLine('${t}','${x.id}')">${esc(x.name)}</button>`).join(' ');
+
+  const blocked = m!=='NEXT';
+  const notice = blocked
+    ? alertBox('warn','warn',`<b>${esc(l.bld==='A'?'Gedung A':(l.bld==='G'?'Gedung G':'Gedung F'))} masih kondisi EXISTING.</b> Selama supply masih lewat area transit, panggilan AMR dipicu <b>operator warehouse</b> (sistem PUSH), bukan PIC produksi. Tombol di bawah nonaktif sampai gedung ini dialihkan ke NEXT.`)
+    : alertBox('info','info',`<b>Sistem PULL aktif.</b> Tekan PANGGIL AMR saat material di titik Anda perlu diisi. Panggilan otomatis dikaitkan ke WO yang sedang berjalan di ${esc(l.name)}.`);
+
+  const ptChips = preview
+    ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;justify-content:center">
+        ${Object.keys(PTYPE).map(k=>`<button class="btn ${k===t?'btn-primary':'btn-ghost'}" style="padding:8px 13px" onclick="setPreviewPt('${k}')">${svgS(PTYPE[k].icon,15)} ${esc(PTYPE[k].label)}</button>`).join(' ')}
+      </div>` : '';
+
+  return `<div class="pic-panel">
+    ${preview?alertBox('info','info',`<b>Mode pratinjau.</b> Anda masuk sebagai <b>${esc(r.name)}</b>, bukan PIC produksi. Panel ini ditampilkan apa adanya seperti yang dilihat PIC di tablet titik supply, tapi tombol panggil mengikuti kewenangan peran Anda.`):''}
+    ${ptChips}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;justify-content:center">${chips}</div>
+    ${notice}
+    <div class="pic-hero">
+      <div class="who">${svgS(PTYPE[t].icon,14)} PIC ${esc(PTYPE[t].label)}</div>
+      <h2>${esc(l.name)}</h2>
+      <div class="loc">${esc(bld(l.bld).name)} · ${esc(PTYPE[t].mat)}</div>
+      <div style="margin-top:13px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">${modePill(m)} ${flowTag(m)}</div>
+      <div class="pt-dest" style="margin-top:15px;text-align:left">${svgS('pin',13)} Tujuan <b>${esc(d.code)}</b><br>${esc(d.label)}</div>
+      ${wo?`<div class="wo-strip" style="margin-top:14px">
+        <span class="lbl">WO AKTIF</span><span class="wo-id">${esc(wo.id)}</span>
+        <span class="wo-sku">${esc(wo.sku)}</span>
+        <span class="bar"><i style="width:${Math.min(100,Math.round(wo.done/wo.qty*100))}%"></i></span>
+        <span class="prog">${esc(wo.done)} / ${esc(wo.qty)} pcs</span></div>`:''}
+      <div class="pt-status" style="justify-content:center;margin-top:13px">
+        <span class="s-dot ${s.calling?'s-calling':stockClass(s.stock)}"></span>
+        ${s.calling?'AMR dalam perjalanan…':'Status titik: '+stockLabel(s.stock)}
+      </div>
+    </div>
+    <div class="pic-big">
+      <button ${blocked||s.calling||(preview&&r.kind!=='ADMIN')?'disabled':''} onclick="callAMR('${l.id}','${t}')">${svg('bell')}PANGGIL AMR</button>
+      <button class="ghost" onclick="cycleStock('${l.id}','${t}')">${svg('refresh')}UBAH STATUS</button>
+    </div>
+    <div class="sec">${svg('orders')}Panggilan saya</div>
+    ${ordersTable(DB.get('orders',[]).filter(o=>o.lineId===l.id&&o.type===t).slice(0,8))}
+  </div>`;
+};
+function assignLine(t,lineId){const a=DB.get('assignedLine',{});a[t]=lineId;DB.set('assignedLine',a);route();}
+function setPreviewPt(t){DB.set('previewPt',t);route();}
+
+/* ---------- ANTRIAN WORK ORDER ---------- */
+PAGES.wo=function(){
+  const all=DB.get('wo',{});
+  const scope = LINES;
+  const blocks=scope.map(l=>{
+    const list=all[l.id]||[];
+    const rows=list.map((w,i)=>`
+      <div class="wo-row ${w.status==='RUNNING'?'running':(w.status==='DONE'?'done':'')}">
+        <div class="seq">${i+1}</div>
+        <div><div class="wid">${esc(w.id)}</div><div class="wsku">${esc(w.sku)}</div></div>
+        <span class="bar"><i style="width:${Math.min(100,Math.round(w.done/w.qty*100))}%"></i></span>
+        <div class="wqty">${esc(w.done)} / ${esc(w.qty)} pcs</div>
+        <span class="badge ${w.status==='RUNNING'?'green':(w.status==='DONE'?'gray':'amber')}">${esc(w.status)}</span>
+        <div class="wact">
+          ${w.status!=='DONE'?`<button class="btn-sm-ghost" style="padding:6px 10px" onclick="advanceWO('${l.id}','${w.id}')">${svgS('check',14)} Selesai</button>`:''}
+          <button class="btn-sm-ghost" style="padding:6px 10px" onclick="delWO('${l.id}','${w.id}')">${svgS('trash',14)}</button>
+        </div>
+      </div>`).join('') || `<div class="cell-sub" style="padding:10px">Belum ada WO untuk line ini.</div>`;
+    return `<div class="board-line">
+      <div class="board-line-head">
+        ${l.type==='CHARGING'?svgS('charge',17):svgS('board',17)}
+        <span class="ln">${esc(l.name)}</span>${l.sku?`<span class="sku">${esc(l.sku)}</span>`:''}
+        <span class="tiny-tag">${esc(bld(l.bld).name)}</span>
+        <span class="meta"><button class="btn btn-ghost" style="padding:6px 11px" onclick="addWO('${l.id}')">${svgS('plus',14)} Tambah WO</button></span>
+      </div>
+      <div class="pt-grid" style="grid-template-columns:1fr"><div class="wo-list">${rows}</div></div>
+    </div>`;
+  }).join('');
+  return head('Antrian Work Order','Urutan WO yang harus dipenuhi tiap line. WO teratas yang berstatus RUNNING otomatis menjadi konteks setiap panggilan AMR.')
+    + alertBox('info','info','Panggilan AMR selalu dicatat bersama <b>WO aktif</b> line tersebut, sehingga konsumsi material bisa ditelusuri per WO.')
+    + blocks;
+};
+function advanceWO(lineId,woId){
+  const all=DB.get('wo',{}); const list=all[lineId]||[];
+  const i=list.findIndex(w=>w.id===woId); if(i<0)return;
+  list[i].status='DONE'; list[i].done=list[i].qty;
+  const nxt=list.find(w=>w.status==='QUEUED'); if(nxt)nxt.status='RUNNING';
+  all[lineId]=list; DB.set('wo',all);
+  logIt(`${woId} diselesaikan di ${line(lineId).name}`); toast(`${woId} selesai`); route();
+}
+function delWO(lineId,woId){
+  const all=DB.get('wo',{}); all[lineId]=(all[lineId]||[]).filter(w=>w.id!==woId);
+  DB.set('wo',all); toast('WO dihapus'); route();
+}
+function addWO(lineId){
+  const l=line(lineId);
+  openModal(`Tambah WO — ${l.name}`,
+    fld('Nomor WO','w_id','text',`WO-${l.id}-${String(((DB.get('wo',{})[lineId]||[]).length+1)).padStart(3,'0')}`)+
+    fld('SKU / Tipe','w_sku','text',l.sku||'Charging Batch')+
+    fld('Qty (pcs)','w_qty','number',l.cap||1),
+    ()=>{
+      if(!v('w_id'))return toast('Nomor WO wajib diisi')||false;
+      const all=DB.get('wo',{}); const list=all[lineId]||[];
+      list.push({id:v('w_id'),sku:v('w_sku'),qty:+v('w_qty')||1,done:0,status:list.some(w=>w.status==='RUNNING')?'QUEUED':'RUNNING'});
+      all[lineId]=list; DB.set('wo',all); logIt(`WO ${v('w_id')} ditambahkan ke ${l.name}`); route(); toast('WO ditambahkan');
+    });
+}
+
+/* ---------- RIWAYAT PANGGILAN ---------- */
+function ordersTable(list){
+  if(!list.length) return `<div class="card card-pad"><div class="empty"><div class="ic">${svg('orders')}</div><h3>Belum ada panggilan</h3><p>Setiap penekanan tombol DORONG / PANGGIL AMR akan tercatat di sini lengkap dengan WO, titik tujuan, dan pemicunya.</p></div></div>`;
+  return `<div class="table-wrap"><table>
+    <thead><tr><th>Waktu</th><th>Alur</th><th>Line / Titik</th><th>Tujuan</th><th>WO</th><th>Robot</th><th>Status</th><th>Pemicu</th></tr></thead>
+    <tbody>${list.map(o=>`<tr>
+      <td class="cell-sub">${esc(o.ts)}<div class="cell-sub">${esc(o.id)}</div></td>
+      <td>${flowTag(o.mode)}</td>
+      <td class="cell-strong">${esc(o.lineName)}<div class="cell-sub">${esc(PTYPE[o.type].label)} — ${esc(o.material)}</div></td>
+      <td class="cell-sub">${esc(o.destCode)}<div class="cell-sub">${esc(o.destLabel)}</div></td>
+      <td class="cell-sub">${esc(o.wo)}<div class="cell-sub">${esc(o.sku)}</div></td>
+      <td class="cell-sub" style="color:var(--brand-strong)">${esc(o.robot)}</td>
+      <td><span class="badge ${o.status==='DELIVERED'?'green':(o.status==='ASSIGNED'?'amber':'red')}">${esc(o.status)}</span></td>
+      <td class="cell-sub">${esc(o.by)}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+PAGES.orders=function(){
+  const r=role(); let list=DB.get('orders',[]);
+  if(r.kind==='PIC') list=list.filter(o=>o.type===r.pt);
+  const f=DB.get('ordFilter',{bld:'Semua Gedung',flow:'Semua Alur',st:'Semua Status'});
+  if(f.bld!=='Semua Gedung'){const b=BUILDINGS.find(x=>x.name===f.bld);if(b)list=list.filter(o=>o.bld===b.id);}
+  if(f.flow!=='Semua Alur')  list=list.filter(o=>o.flow===f.flow);
+  if(f.st!=='Semua Status')  list=list.filter(o=>o.status===f.st);
+  const opt=(arr,cur)=>arr.map(o=>`<option ${o===cur?'selected':''}>${esc(o)}</option>`).join('');
+  const filter=`<div class="card card-pad" style="margin-bottom:18px"><div class="filters">
+    <div class="field"><label>Gedung</label><select onchange="setOrdFilter('bld',this.value)">${opt(['Semua Gedung',...BUILDINGS.map(b=>b.name)],f.bld)}</select></div>
+    <div class="field"><label>Alur</label><select onchange="setOrdFilter('flow',this.value)">${opt(['Semua Alur','PUSH','PULL'],f.flow)}</select></div>
+    <div class="field"><label>Status</label><select onchange="setOrdFilter('st',this.value)">${opt(['Semua Status','PENDING','ASSIGNED','DELIVERED'],f.st)}</select></div>
+  </div></div>`;
+  return head('Orders — Riwayat Panggilan',`Semua panggilan AMR — PUSH (transit) maupun PULL (titik supply line) — beserta WO yang sedang berjalan saat panggilan dibuat.`)
+    + filter + ordersTable(list);
+};
+
+/* ---------- MATRIKS HARMONISASI ---------- */
+PAGES.matrix=function(){
+  const rows=LINES.map(l=>{
+    const m=modeOf(l.bld);
+    return pointsOf(l).map((t,i)=>{
+      const ex=destOf(l,t,'EXISTING'), nx=destOf(l,t,'NEXT');
+      return `<tr>
+        ${i===0?`<td class="grp" rowspan="${pointsOf(l).length}">${esc(bld(l.bld).name)}<div class="cell-sub">${esc(l.name)}${l.sku?' · '+esc(l.sku):''}</div></td>`:''}
+        <td>${svgS(PTYPE[t].icon,15)} <b>${esc(PTYPE[t].label)}</b><div class="cell-sub">${esc(PTYPE[t].mat)}</div></td>
+        <td><span class="tiny-tag">${esc(ex.code)}</span><div class="cell-sub">Area transit ${esc(l.name)}</div></td>
+        <td><span class="flow-tag push">PUSH</span><div class="cell-sub">Operator WH (tablet)</div></td>
+        <td><span class="tiny-tag">${esc(nx.code)}</span><div class="cell-sub">Titik supply di line</div></td>
+        <td><span class="flow-tag pull">PULL</span><div class="cell-sub">PIC ${esc(PTYPE[t].label)}</div></td>
+        ${i===0?`<td class="grp" rowspan="${pointsOf(l).length}">${modePill(m)}</td>`:''}
+      </tr>`;
+    }).join('');
+  }).join('');
+  return head('Matriks Harmonisasi','Pemetaan lengkap tiap titik supply: tujuan dan pemicu pada kondisi EXISTING vs NEXT.')
+    + alertBox('info','info','Struktur titik <b>tidak berubah</b> antara EXISTING dan NEXT — yang berubah hanya <b>lokasi tujuan</b> (transit → titik line) dan <b>siapa yang memicu</b> (warehouse → PIC produksi). Itulah dasar harmonisasinya.')
+    + `<div class="matrix-wrap"><table class="matrix">
+      <thead><tr>
+        <th>Gedung / Line</th><th>Titik Supply</th>
+        <th>EXISTING — tujuan</th><th>EXISTING — pemicu</th>
+        <th>NEXT — tujuan</th><th>NEXT — pemicu</th><th>Mode aktif</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>`;
+};
+
+/* ---------- ARMADA ---------- */
+PAGES.robots=function(){
+  const robots=DB.get('robots',[]);
+  const rows=robots.length?robots.map((r,i)=>`<tr>
+    <td class="cell-strong">${esc(r.name)}<div class="cell-sub">${esc(r.sn)}</div></td>
+    <td class="cell-sub">${esc(r.ip)}</td>
+    <td><span class="badge green" style="background:var(--brand-tint)">${esc(bld(r.bld)?bld(r.bld).name:'—')}</span></td>
+    <td><span class="batt" style="color:${r.battery>40?'var(--green)':'var(--amber)'}">${svgS('battery',15)} ${esc(r.battery)}%</span></td>
+    <td><span class="badge ${r.status==='online'?'green':'amber'}">${esc(r.status)}</span></td>
+    <td><div class="actions"><button class="act danger" title="Hapus" onclick="delRobot(${i})">${svg('trash')}</button></div></td>
+  </tr>`).join('')
+  :`<tr><td colspan="6"><div class="empty"><div class="ic">${svg('robots')}</div><h3>Belum ada AMR</h3><p>Tambahkan unit Autoxing dan tentukan gedung penugasannya.</p></div></td></tr>`;
+  return head('Robots','Unit Autoxing dan gedung penugasannya. Panggilan hanya diarahkan ke robot yang online di gedung yang sama.',
+    `<button class="btn btn-primary" onclick="addRobot()">${svg('plus')} Tambah AMR</button>`)
+    + `<div class="table-wrap"><table><thead><tr><th>Unit</th><th>IP</th><th>Gedung</th><th>Baterai</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+};
+function addRobot(){
+  openModal('Tambah AMR',
+    fld('Serial Number','r_sn')+fld('Nama','r_name')+fld('IP Address','r_ip','text','','mis. 192.168.110.212')+
+    sel('Gedung','r_bld',BUILDINGS.map(b=>b.name))+fld('Baterai %','r_batt','number','100')+sel('Status','r_st',['online','offline','charging']),
+    ()=>{
+      if(!v('r_sn'))return toast('SN wajib diisi')||false;
+      const b=BUILDINGS.find(x=>x.name===v('r_bld'))||BUILDINGS[0];
+      const list=DB.get('robots',[]);
+      list.push({sn:v('r_sn'),name:v('r_name')||v('r_sn'),ip:v('r_ip'),bld:b.id,battery:+v('r_batt')||0,status:v('r_st')});
+      DB.set('robots',list);logIt(`AMR ${v('r_sn')} ditambahkan`);route();toast('AMR ditambahkan');
+    });
+}
+function delRobot(i){const l=DB.get('robots',[]);l.splice(i,1);DB.set('robots',l);route();toast('AMR dihapus');}
+
+/* ---------- ACTIVITY LOG ---------- */
+PAGES.logs=function(){
+  const logs=DB.get('logs',[]);
+  const rows=logs.length?logs.map(l=>`<tr><td class="cell-sub">${esc(l.time)}</td><td class="cell-strong">${esc(l.user)}</td><td>${esc(l.msg)}</td></tr>`).join('')
+    :`<tr><td colspan="3"><div class="empty"><div class="ic">${svg('logs')}</div><h3>Belum ada aktivitas</h3><p>Perubahan mode, panggilan AMR, dan perubahan WO tercatat di sini.</p></div></td></tr>`;
+  return head('Activity Logs','Jejak audit perubahan mode, panggilan AMR, dan Work Order.')
+    + `<div class="table-wrap"><table><thead><tr><th>Waktu</th><th>Pengguna</th><th>Aktivitas</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+};
+
+/* ---------- ANALISA LOG: pembaca file .bag dari robot (modul AMRBag) ---------- */
+PAGES.baglog=function(){
+  return head('Analisa Log AMR',
+      'Buka file .bag dari robot untuk melihat rute, kamera, dan penyebab robot berhenti. '
+      + 'Riwayat menumpuk di browser ini dan bisa diekspor.')
+    + `<div id="ab-host" style="height:calc(100vh - 210px);min-height:560px;
+         border:1px solid var(--border-2);border-radius:var(--radius);overflow:hidden"></div>`;
+};
+
+function setOrdFilter(k,v2){const f=DB.get('ordFilter',{bld:'Semua Gedung',flow:'Semua Alur',st:'Semua Status'});f[k]=v2;DB.set('ordFilter',f);route();}
+
+/* =====================================================================
+   HALAMAN YANG DIKEMBALIKAN DARI PORTAL v1
+   (terdaftar di MENU_REGISTRY — jangan dihapus saat relayout)
+   ===================================================================== */
+
+function backendNote(what){
+  return alertBox('warn','warn',`<b>Halaman ini belum terhubung backend.</b> ${what} Data yang tampil tersimpan lokal di browser ini saja — belum dibagikan antar tablet. Struktur halaman sengaja dipertahankan agar tinggal disambungkan saat API tersedia.`);
+}
+
+/* ---------- MACHINE CALL: stasiun panggil per line (pengganti Line001 v1) ---------- */
+PAGES.lineCall=function(lineId){
+  const l=line(lineId); if(!l) return PAGES.dashboard();
+  const m=modeOf(l.bld), st=pstate(), wo=activeWO(l.id), r=role();
+  const allowed = (r.kind==='ADMIN') || (m==='EXISTING'&&r.kind==='WH') || (m==='NEXT'&&r.kind==='PIC');
+
+  const cards=pointsOf(l).map(t=>{
+    const key=pid(l,t), s=st[key]||{stock:'OK'}, d=destOf(l,t,m);
+    const disabled = !allowed || s.calling || (r.kind==='PIC'&&r.pt!==t);
+    return `<div class="pt-card ${s.calling?'st-calling':(s.stock==='EMPTY'?'st-empty':(s.stock==='LOW'?'st-low':''))}">
+      <div class="pt-top"><div class="pico">${svg(PTYPE[t].icon)}</div>
+        <div><div class="pt-name">${esc(PTYPE[t].label)}</div><div class="pt-mat">${esc(PTYPE[t].mat)}</div></div></div>
+      <div class="pt-dest">${svgS('pin',13)} Tujuan <b>${esc(d.code)}</b><br>${esc(d.label)}</div>
+      <div class="pt-status"><span class="s-dot ${s.calling?'s-calling':stockClass(s.stock)}"></span>${s.calling?'AMR dalam perjalanan…':'Status stok: '+stockLabel(s.stock)}</div>
+      <div class="pt-actions">
+        <button class="btn-call ${m==='EXISTING'?'push':''}" ${disabled?'disabled':''} onclick="callAMR('${l.id}','${t}')">${svg(m==='EXISTING'?'truck':'bell')} ${m==='EXISTING'?'DORONG':'PANGGIL'}</button>
+        <button class="btn-sm-ghost" onclick="cycleStock('${l.id}','${t}')">${svgS('refresh',15)}</button>
+      </div></div>`;
+  }).join('');
+
+  return head(l.name,`Stasiun Machine Call ${esc(l.name)} — ${esc(bld(l.bld).name)}${l.sku?' · SKU '+esc(l.sku):''}.`)
+  + `<div class="bld-banner">
+      <div class="bico">${svg(l.type==='CHARGING'?'charge':'board')}</div>
+      <div class="grow"><h2>${esc(l.name)}</h2>
+        <div class="sub">${esc(bld(l.bld).name)} · ${pointsOf(l).length} titik supply${l.ct?` · CT ${esc(l.ct)} dtk/pcs · ${esc(l.pp)} pcs/pallet`:''}</div>
+        <div style="margin-top:9px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">${modePill(m)} ${flowTag(m)}
+          <button class="st-chip ${lineStatus(l).andon?'andon':'done'}" onclick="toggleAndon('${l.id}')"><span class="d"></span>${lineStatus(l).andon?'ANDON':'DONE'}</button>
+        </div></div>
+      <button class="btn btn-ghost" onclick="go('bld-${l.bld}')">Papan ${esc(bld(l.bld).name)} ${svgS('arrow',15)}</button>
+    </div>`
+  + statusBanner([l])
+  + (wo?`<div class="wo-strip"><span class="lbl">WO AKTIF</span><span class="wo-id">${esc(wo.id)}</span>
+      <span class="wo-sku">${esc(wo.sku)}</span><span class="bar"><i style="width:${Math.min(100,Math.round(wo.done/wo.qty*100))}%"></i></span>
+      <span class="prog">${esc(wo.done)} / ${esc(wo.qty)} pcs</span>
+      <button class="btn-sm-ghost" style="padding:6px 10px" onclick="go('wo')">Lihat antrian</button></div>`
+    :alertBox('warn','warn','Line ini belum punya WO aktif. Panggilan tetap bisa dilakukan tapi tidak akan terhubung ke WO manapun.'))
+  + `<div class="pt-grid" style="border-radius:var(--radius-sm)">${cards}</div>`
+  + `<div class="sec">${svg('orders')}Panggilan line ini</div>`
+  + ordersTable(DB.get('orders',[]).filter(o=>o.lineId===l.id).slice(0,8));
+};
+
+/* ---------- AREA MONITOR per gedung (peta live, RAF sudah dikelola) ---------- */
+PAGES.monitor=function(bId){
+  const b=bld(bId); if(!b) return PAGES.dashboard();
+  const robots=DB.get('robots',[]).filter(r=>r.bld===bId);
+  const st=pstate();
+  const open=DB.get('orders',[]).filter(o=>o.bld===bId&&o.status!=='DELIVERED');
+  const rstat = robots.length ? robots.map(r=>`
+    <div class="rstat"><div class="r1">
+      <div><b>${esc(r.name)}</b> <span class="cell-sub">${esc(r.sn)}</span></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="batt" style="color:${r.battery>40?'var(--green)':'var(--amber)'}">${svgS('battery',15)} ${esc(r.battery)}%</span>
+        <span class="badge ${r.status==='online'?'green':'amber'}">${r.status==='online'?'ON':'OFF'}</span></div></div>
+      <div class="idle">${svgS('robots',15)} ${r.status==='online'?'Idle':'Offline'}</div></div>`).join('')
+    : `<div class="rstat"><div class="cell-sub">Belum ada AMR yang ditugaskan ke gedung ini.</div></div>`;
+  const pts=linesOf(bId).flatMap(l=>pointsOf(l).map(t=>({l,t,s:st[pid(l,t)]||{}})));
+  const bad=pts.filter(p=>p.s.stock==='EMPTY'||p.s.stock==='LOW');
+  return head('Monitor '+b.name,`Pusat kendali live ${esc(b.name)} — posisi AMR, status titik supply, dan antrian order aktif.`)
+  + `<div class="am-grid">
+      <div class="map3d"><canvas id="map3d"></canvas>
+        <div class="control-center">
+          <h4>Control Center</h4>
+          <div class="cc-row"><span>Geser peta</span><span class="kbd">Klik kiri</span></div>
+          <div class="cc-row"><span>Putar</span><span class="kbd">Ctrl + Drag</span></div>
+          <div class="cc-row"><span>Miringkan</span><span class="kbd">Shift + Drag</span></div>
+          <div class="cc-meta">Gedung: <b>${esc(b.name)}</b><br>Line: ${linesOf(bId).length} · Titik: ${pts.length}<br><span style="color:#64748b">Peta simulasi — belum data SLAM asli.</span></div>
+          <button class="cc-reset" onclick="startMap('${bId}')">${svgS('refresh',15)} Reset tampilan</button>
+        </div></div>
+      <div>
+        <div class="card card-pad robot-status"><div class="head">Status AMR (${robots.length})</div>${rstat}</div>
+        <div class="card card-pad order-q"><div class="head">Antrian Order Aktif</div>
+          <span class="badge ${open.length?'amber':'green'}">${open.length} berjalan</span>
+          ${open.length?open.map(o=>`<div class="wo-row" style="margin-top:8px"><div><div class="wid">${esc(o.lineName)} · ${esc(PTYPE[o.type].label)}</div><div class="wsku">${esc(o.destCode)} · ${esc(o.wo)}</div></div><span class="badge amber" style="margin-left:auto">${esc(o.status)}</span></div>`).join('')
+            :`<div class="empty-q">Aman. Tidak ada order berjalan.</div>`}
+        </div>
+        <div class="card card-pad" style="margin-top:14px"><div class="head">Titik perlu perhatian (${bad.length})</div>
+          ${bad.length?bad.map(p=>`<div class="wo-row" style="margin-top:8px"><span class="s-dot ${stockClass(p.s.stock)}"></span><div><div class="wid">${esc(p.l.name)} · ${esc(PTYPE[p.t].label)}</div><div class="wsku">${esc(destOf(p.l,p.t,modeOf(bId)).code)}</div></div><span class="badge ${p.s.stock==='EMPTY'?'red':'amber'}" style="margin-left:auto">${stockLabel(p.s.stock)}</span></div>`).join('')
+            :`<div class="empty-q">Seluruh titik supply aman.</div>`}
+        </div>
+      </div></div>`;
+};
+
+/* Peta canvas — SATU loop global, selalu dibatalkan oleh route() lewat stopMap() */
+let mapAnim=null, mapResize=null;
+function stopMap(){
+  if(mapAnim){cancelAnimationFrame(mapAnim);mapAnim=null;}
+  if(mapResize){window.removeEventListener('resize',mapResize);mapResize=null;}
+}
+function startMap(bId){
+  stopMap();
+  const c=document.getElementById('map3d'); if(!c) return;
+  const dpr=window.devicePixelRatio||1;
+  const size=()=>{c.width=Math.max(1,c.clientWidth*dpr);c.height=Math.max(1,c.clientHeight*dpr);};
+  size(); mapResize=size; window.addEventListener('resize',mapResize);
+  const ctx=c.getContext('2d'); const n=linesOf(bId).length; let t=0;
+  function draw(){
+    if(!document.body.contains(c)){stopMap();return;}   /* canvas dilepas → loop berhenti */
+    const w=c.width,h=c.height;
+    ctx.clearRect(0,0,w,h); ctx.fillStyle='#0b1220'; ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle='rgba(45,212,191,.18)'; ctx.lineWidth=1*dpr;
+    const cx=w*0.5, hz=h*0.42;
+    for(let i=-10;i<=10;i++){ctx.beginPath();ctx.moveTo(cx+i*40*dpr,hz);ctx.lineTo(cx+i*220*dpr,h);ctx.stroke();}
+    for(let j=0;j<14;j++){const y=hz+Math.pow(j/14,2)*(h-hz);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+    ctx.fillStyle='rgba(226,232,240,.9)';
+    ctx.beginPath();
+    const rw=320*dpr, rh=150*dpr, rx0=cx-rw/2, ry0=hz+70*dpr;
+    if(ctx.roundRect) ctx.roundRect(rx0,ry0,rw,rh,8*dpr); else ctx.rect(rx0,ry0,rw,rh);
+    ctx.fill();
+    ctx.fillStyle='#0b1220';
+    for(let i=0;i<n;i++){ctx.fillRect(rx0+20*dpr+i*(rw-40*dpr)/Math.max(1,n), ry0+30*dpr, (rw-40*dpr)/Math.max(1,n)-10*dpr, 80*dpr);}
+    const rx=cx+Math.sin(t/60)*80*dpr, ry=hz+150*dpr;
+    ctx.fillStyle='#111';ctx.fillRect(rx-14*dpr,ry-9*dpr,28*dpr,18*dpr);
+    ctx.fillStyle='#2dd4bf';ctx.beginPath();ctx.arc(rx,ry-16*dpr,4*dpr,0,7);ctx.fill();
+    const gx=w-80*dpr, gy=h-70*dpr; ctx.lineWidth=3*dpr;
+    ctx.strokeStyle='#22c55e';ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx,gy-30*dpr);ctx.stroke();
+    ctx.strokeStyle='#ef4444';ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx+28*dpr,gy);ctx.stroke();
+    ctx.fillStyle='#3b82f6';ctx.beginPath();ctx.arc(gx,gy,7*dpr,0,7);ctx.fill();
+    t++; mapAnim=requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+/* ---------- AREAS (v1) ---------- */
+PAGES.areas=function(){
+  const areas=DB.get('areas',[]);
+  const rows=areas.length?areas.map((a,i)=>`<tr>
+    <td class="cell-strong">${esc(a.name)}<div class="cell-sub">${esc(a.bld?('Gedung '+a.bld):'—')}</div></td>
+    <td>${svgS('matrix',15)} ${esc(a.map||'—')}<div class="cell-sub">${esc(a.mapId||'')}</div></td>
+    <td><span class="badge ${a.sync==='Synced'?'green':'gray'}">${esc(a.sync||'Not synced')}</span></td>
+    <td>${(a.robots||[]).map(r=>`<span class="chip robot">${esc(r)}</span>`).join(' ')||'<span class="cell-sub">tidak ada</span>'}</td>
+    <td><div class="actions">
+      <button class="act brand" title="Sync" onclick="syncArea(${i})">${svg('refresh')}</button>
+      <button class="act" title="Edit" onclick="editArea(${i})">${svg('edit')}</button>
+      <button class="act danger" title="Hapus" onclick="delIdx('areas',${i})">${svg('trash')}</button>
+    </div></td></tr>`).join('')
+    :`<tr><td colspan="5"><div class="empty"><div class="ic">${svg('pin')}</div><h3>Belum ada area</h3><p>Buat area logis, tugaskan AMR, dan sinkronkan peta aktif.</p></div></td></tr>`;
+  return head('Areas','Area logis AMR, peta aktif, dan penugasan robot.',
+    `<button class="btn btn-primary" onclick="addArea()">${svg('plus')} Tambah Area</button>`)
+    + backendNote('Sinkronisasi peta ke robot memerlukan API Autoxing.')
+    + `<div class="table-wrap"><table><thead><tr><th>Nama Area</th><th>Peta Aktif</th><th>Status Sync</th><th>AMR</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+};
+function addArea(){openModal('Tambah Area',
+  fld('Nama Area','a_name','text','','mis. Produksi 1')+sel('Gedung','a_bld',BUILDINGS.map(b=>b.name))+
+  sel('Peta Aktif','a_map',['No Map',...DB.get('maps',[]).map(m=>m.name)])+
+  `<div class="two-col">${fld('Baterai rendah (%)','a_low','number','20','Mulai charging.')}${fld('Baterai penuh (%)','a_high','number','80','Berhenti charging.')}</div>`,
+  ()=>{if(!v('a_name'))return toast('Nama area wajib diisi')||false;
+    const b=BUILDINGS.find(x=>x.name===v('a_bld'))||BUILDINGS[0];
+    const l=DB.get('areas',[]);l.push({name:v('a_name'),bld:b.id,map:v('a_map')==='No Map'?'':v('a_map'),mapId:'—',sync:'Not synced',robots:[]});
+    DB.set('areas',l);logIt(`Area ${v('a_name')} ditambahkan`);route();toast('Area ditambahkan');});}
+function editArea(i){const a=DB.get('areas',[])[i];if(!a)return;
+  openModal('Edit Area',fld('Nama Area','a_name','text',a.name)+
+    sel('Gedung','a_bld',BUILDINGS.map(b=>b.name),(bld(a.bld)||{}).name)+
+    sel('Peta Aktif','a_map',['No Map',...DB.get('maps',[]).map(m=>m.name)],a.map||'No Map')+
+    sel('Status Sync','a_sync',['Synced','Not synced'],a.sync),
+    ()=>{const b=BUILDINGS.find(x=>x.name===v('a_bld'))||BUILDINGS[0];
+      const l=DB.get('areas',[]);l[i]={...a,name:v('a_name'),bld:b.id,map:v('a_map')==='No Map'?'':v('a_map'),sync:v('a_sync')};
+      DB.set('areas',l);route();toast('Area diperbarui');});}
+function syncArea(i){const l=DB.get('areas',[]);if(!l[i])return;l[i].sync='Synced';DB.set('areas',l);logIt(`Area ${l[i].name} disinkronkan`);route();toast('Area disinkronkan');}
+function delIdx(key,i){const l=DB.get(key,[]);l.splice(i,1);DB.set(key,l);route();toast('Data dihapus');}
+
+/* ---------- MAPS (v1) ---------- */
+PAGES.maps=function(){
+  const maps=DB.get('maps',[]);
+  const rows=maps.length?maps.map((m,i)=>`<tr>
+    <td class="cell-strong">${svgS('matrix',15)} ${esc(m.name)}</td>
+    <td class="cell-sub">${esc(m.id||'—')}</td>
+    <td>${esc(m.area||'—')}</td>
+    <td class="cell-sub">${esc(m.updated||'—')}</td>
+    <td><div class="actions">
+      <button class="act" title="Edit" onclick="editMap(${i})">${svg('edit')}</button>
+      <button class="act danger" title="Hapus" onclick="delIdx('maps',${i})">${svg('trash')}</button>
+    </div></td></tr>`).join('')
+    :`<tr><td colspan="5"><div class="empty"><div class="ic">${svg('matrix')}</div><h3>Belum ada peta</h3><p>Daftarkan peta lantai lalu tetapkan sebagai peta aktif sebuah area.</p></div></td></tr>`;
+  return head('Maps','Peta lantai dan penetapannya ke area.',
+    `<button class="btn btn-primary" onclick="addMap()">${svg('plus')} Tambah Peta</button>`)
+    + backendNote('Upload dan preview peta SLAM memerlukan API Autoxing.')
+    + `<div class="table-wrap"><table><thead><tr><th>Nama Peta</th><th>Map ID</th><th>Area</th><th>Diperbarui</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+};
+function addMap(){openModal('Tambah Peta',fld('Nama Peta','m_name')+fld('Map ID','m_id')+sel('Area','m_area',['—',...DB.get('areas',[]).map(a=>a.name)]),
+  ()=>{if(!v('m_name'))return toast('Nama peta wajib diisi')||false;
+    const l=DB.get('maps',[]);l.push({name:v('m_name'),id:v('m_id'),area:v('m_area'),updated:new Date().toLocaleString('id-ID')});
+    DB.set('maps',l);route();toast('Peta ditambahkan');});}
+function editMap(i){const m=DB.get('maps',[])[i];if(!m)return;
+  openModal('Edit Peta',fld('Nama Peta','m_name','text',m.name)+fld('Map ID','m_id','text',m.id)+sel('Area','m_area',['—',...DB.get('areas',[]).map(a=>a.name)],m.area),
+  ()=>{const l=DB.get('maps',[]);l[i]={...m,name:v('m_name'),id:v('m_id'),area:v('m_area'),updated:new Date().toLocaleString('id-ID')};DB.set('maps',l);route();toast('Peta diperbarui');});}
+
+/* =====================================================================
+   STATUS TASK / ANDON
+   Merah (ANDON) bila salah satu terpenuhi:
+     1. Andon ditarik manual oleh operator/PIC
+     2. Ada titik supply berstatus KOSONG
+     3. Ada order yang tidak mendapat robot (status PENDING)
+   Hijau (DONE) bila tidak ada satupun di atas.
+   WO yang sedang RUNNING TIDAK membuat merah — itu produksi normal.
+   ===================================================================== */
+const andonDB = ()=>DB.get('andon',{});
+function lineStatus(l){
+  const why=[];
+  const a=andonDB()[l.id];
+  if(a&&a.active) why.push('Andon ditarik manual'+(a.reason?': '+a.reason:''));
+  const st=pstate();
+  pointsOf(l).forEach(t=>{ if((st[pid(l,t)]||{}).stock==='EMPTY') why.push(`Titik ${PTYPE[t].label} KOSONG`); });
+  DB.get('orders',[]).filter(o=>o.lineId===l.id&&o.status==='PENDING')
+    .forEach(o=>why.push(`Order ${o.id} tidak mendapat robot`));
+  return {andon:why.length>0, why};
+}
+function plantStatus(){
+  const bad=LINES.map(l=>({l,s:lineStatus(l)})).filter(x=>x.s.andon);
+  const openTasks=DB.get('tasks',[]).filter(t=>t.status==='Pending'||t.status==='In Progress');
+  const failTasks=DB.get('tasks',[]).filter(t=>t.status==='Failed');
+  return {bad, openTasks, failTasks, ok: bad.length===0 && failTasks.length===0};
+}
+function statusBanner(scopeLines){
+  const lines=scopeLines||LINES;
+  const bad=lines.map(l=>({l,s:lineStatus(l)})).filter(x=>x.s.andon);
+  const failTasks=DB.get('tasks',[]).filter(t=>t.status==='Failed');
+  const openTasks=DB.get('tasks',[]).filter(t=>t.status==='Pending'||t.status==='In Progress');
+  if(bad.length===0 && failTasks.length===0){
+    return alertBox('ok','check',
+      `<b>TASK DONE — tidak ada andon.</b> ${lines.length} line bersih: tidak ada titik supply kosong, tidak ada order tanpa robot, tidak ada task gagal.`
+      + (openTasks.length?` <span style="opacity:.8">(${openTasks.length} task manual masih berjalan — tidak menghalangi produksi.)</span>`:''));
+  }
+  const items = bad.map(x=>`<div class="andon-item">${svgS('warn',15)}<div>${esc(x.l.name)}<div class="st-why">${esc(x.s.why.join(' · '))}</div></div></div>`).join('')
+    + failTasks.map(t=>`<div class="andon-item">${svgS('warn',15)}<div>Task ${esc(t.id)} GAGAL<div class="st-why">${esc(t.type||'')} · ${esc(t.robot||'tanpa robot')}</div></div></div>`).join('');
+  const n=bad.length+failTasks.length;
+  return `<div class="alert bad"><div class="pulse-ring"></div><div style="flex:1">
+      <b>ANDON AKTIF — perlu ditangani.</b>
+      ${n} ${n===1?'item':'item'} menunggu penanganan. Produksi berisiko berhenti sampai supply atau task-nya diselesaikan.
+      <div class="andon-grid">${items}</div>
+    </div></div>`;
+}
+function toggleAndon(lineId){
+  const a=andonDB(), cur=a[lineId];
+  if(cur&&cur.active){
+    a[lineId]={active:false};DB.set('andon',a);
+    logIt(`Andon ${line(lineId).name} dinormalkan`);toast(`Andon ${line(lineId).name} dinormalkan`);route();
+    return;
+  }
+  openModal(`Tarik Andon — ${line(lineId).name}`,
+    sel('Penyebab','an_r',['Material telat','Trolley tidak tersedia','AMR tidak datang','Jalur terhalang','Lainnya']),
+    ()=>{const x=andonDB();x[lineId]={active:true,reason:v('an_r'),ts:new Date().toLocaleString('id-ID')};
+      DB.set('andon',x);logIt(`ANDON ${line(lineId).name}: ${v('an_r')}`);toast(`Andon ${line(lineId).name} ditarik`);route();});
+}
+
+/* ---------- MACHINES (v1) — stasiun panggil ---------- */
+PAGES.machines=function(){
+  const rows=LINES.map(l=>{
+    const m=modeOf(l.bld), s=lineStatus(l), wo=activeWO(l.id);
+    return `<tr>
+      <td class="cell-strong">${svgS(l.type==='CHARGING'?'charge':'board',15)} ${esc(l.name)}<div class="cell-sub">${esc(l.id)}${l.sku?' · '+esc(l.sku):''}</div></td>
+      <td>${esc(bld(l.bld).name)}</td>
+      <td><span class="tiny-tag">${l.type==='CHARGING'?'CHARGING':'ASSEMBLY'}</span></td>
+      <td>${pointsOf(l).map(t=>`<span class="chip robot">${esc(PTYPE[t].label)}</span>`).join(' ')}</td>
+      <td>
+        <button class="st-chip ${s.andon?'andon':'done'}" onclick="toggleAndon('${l.id}')" title="${s.andon?'Klik untuk normalkan andon':'Klik untuk menarik andon'}">
+          <span class="d"></span>${s.andon?'ANDON':'DONE'}
+        </button>
+        <div class="st-why">${s.andon?esc(s.why.join(' · ')):(wo?esc(wo.id)+' berjalan · supply aman':'tidak ada WO aktif')}</div>
+      </td>
+      <td>${modePill(m)}</td>
+      <td><div class="actions"><button class="act brand" title="Buka stasiun panggil" onclick="go('line-${l.id}')">${svg('play')}</button></div></td>
+    </tr>`;
+  }).join('');
+  return head('Machines','Stasiun panggil tiap line produksi dan charging — diturunkan dari struktur pabrik (3 gedung / 9 line), bukan diinput manual. Tombol ▶ membuka stasiun panggil line tersebut.')
+    + statusBanner()
+    + `<div class="table-wrap"><table><thead><tr><th>Machine / Line</th><th>Gedung</th><th>Tipe</th><th>Titik Supply</th><th>Status Task / Andon</th><th>Mode</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+};
+
+/* ---------- TASKS (v1) ---------- */
+PAGES.tasks=function(){
+  const tasks=DB.get('tasks',[]);
+  const rows=tasks.length?tasks.map((t,i)=>`<tr>
+    <td class="cell-strong">${esc(t.id)}</td>
+    <td class="cell-sub" style="color:var(--brand-strong)">${esc(t.robot||'—')}</td>
+    <td>${esc(t.type||'—')}</td>
+    <td><span class="badge ${t.status==='Completed'?'green':(t.status==='Failed'?'red':'amber')}">${esc(t.status||'Pending')}</span></td>
+    <td class="cell-sub">${esc(t.created||'—')}</td>
+    <td><div class="actions"><button class="act danger" title="Hapus" onclick="delIdx('tasks',${i})">${svg('trash')}</button></div></td>
+  </tr>`).join('')
+  :`<tr><td colspan="6"><div class="empty"><div class="ic">${svg('wo')}</div><h3>Belum ada task</h3><p>Task manual di luar alur panggilan otomatis dicatat di sini — mis. reposisi robot atau charging terjadwal.</p></div></td></tr>`;
+  return head('Tasks','Task manual di luar alur panggilan supply (reposisi, charging terjadwal, uji jalur).',
+    `<button class="btn btn-primary" onclick="addTask()">${svg('plus')} Tambah Task</button>`)
+    + `<div class="table-wrap"><table><thead><tr><th>Task ID</th><th>Robot</th><th>Tipe</th><th>Status</th><th>Dibuat</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+};
+function addTask(){openModal('Tambah Task',
+  fld('Task ID','t_id','text','TSK-'+String(DB.get('tasks',[]).length+1).padStart(3,'0'))+
+  sel('Robot','t_robot',['—',...DB.get('robots',[]).map(r=>r.sn)])+
+  sel('Tipe','t_type',['Reposisi','Charging','Uji jalur','Lainnya'])+
+  sel('Status','t_status',['Pending','In Progress','Completed','Failed']),
+  ()=>{if(!v('t_id'))return toast('Task ID wajib diisi')||false;
+    const l=DB.get('tasks',[]);l.push({id:v('t_id'),robot:v('t_robot'),type:v('t_type'),status:v('t_status'),created:new Date().toLocaleString('id-ID')});
+    DB.set('tasks',l);logIt(`Task ${v('t_id')} dibuat`);route();toast('Task ditambahkan');});}
+
+/* ---------- USERS (v1) ---------- */
+PAGES.users=function(){
+  const users=DB.get('users',[]);
+  const rows=users.length?users.map((u,i)=>`<tr>
+    <td><div style="display:flex;align-items:center;gap:12px">
+      <div class="avatar" style="width:34px;height:34px;font-size:12px">${esc(initials(u.name||'?'))}</div>
+      <div><div class="cell-strong">${esc(u.name)}</div><div class="cell-sub">@${esc(u.username)}</div></div></div></td>
+    <td><span class="badge ${u.role==='SUPER_ADMIN'?'green':'gray'}">${esc(u.role)}</span></td>
+    <td class="cell-sub">${esc(u.scope||'—')}</td>
+    <td><span class="badge ${u.status==='active'?'green':'gray'}">${esc(u.status)}</span></td>
+    <td><div class="actions">
+      <button class="act" title="Edit" onclick="editUser(${i})">${svg('edit')}</button>
+      <button class="act danger" title="Hapus" onclick="delIdx('users',${i})">${svg('trash')}</button></div></td>
+  </tr>`).join('')
+  :`<tr><td colspan="5"><div class="empty"><div class="ic">${svg('users')}</div><h3>Belum ada pengguna</h3><p>Tambahkan operator dan admin yang boleh mengakses portal.</p></div></td></tr>`;
+  return head('Users','Akun operator warehouse, PIC produksi, dan admin.',
+    `<button class="btn btn-primary" onclick="addUser()">${svg('plus')} Tambah Pengguna</button>`)
+    + backendNote('Autentikasi belum ada — daftar ini belum mengatur akses sungguhan.')
+    + alertBox('info','info','Operator warehouse <b>satu akun untuk seluruh gedung</b> (A, G, F) sesuai keputusan Anda; pembatasan hanya berlaku untuk PIC produksi yang terikat jenis titik supply-nya.')
+    + `<div class="table-wrap"><table><thead><tr><th>Pengguna</th><th>Role</th><th>Cakupan</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+};
+const ROLE_OPTS=['SUPER_ADMIN','WAREHOUSE','PIC_PACKAGING','PIC_COVER','PIC_SEPARATOR'];
+function addUser(){openModal('Tambah Pengguna',
+  fld('Nama Lengkap','u_name')+fld('Username','u_user')+sel('Role','u_role',ROLE_OPTS)+
+  fld('Cakupan','u_scope','text','Semua gedung','Warehouse = semua gedung. PIC = line yang dipegang.')+
+  sel('Status','u_status',['active','inactive']),
+  ()=>{if(!v('u_name'))return toast('Nama wajib diisi')||false;
+    const l=DB.get('users',[]);l.push({name:v('u_name'),username:v('u_user'),role:v('u_role'),scope:v('u_scope'),status:v('u_status')});
+    DB.set('users',l);logIt(`Pengguna ${v('u_name')} ditambahkan`);route();toast('Pengguna ditambahkan');});}
+function editUser(i){const u=DB.get('users',[])[i];if(!u)return;
+  openModal('Edit Pengguna',fld('Nama Lengkap','u_name','text',u.name)+fld('Username','u_user','text',u.username)+
+    sel('Role','u_role',ROLE_OPTS,u.role)+fld('Cakupan','u_scope','text',u.scope||'')+sel('Status','u_status',['active','inactive'],u.status),
+  ()=>{const l=DB.get('users',[]);l[i]={name:v('u_name'),username:v('u_user'),role:v('u_role'),scope:v('u_scope'),status:v('u_status')};
+    DB.set('users',l);route();toast('Pengguna diperbarui');});}
+
+/* ---------- SESSIONS (v1) ---------- */
+PAGES.sessions=function(){
+  const s=DB.get('sessions',[]);
+  const rows=s.length?s.map((x,i)=>`<tr>
+    <td class="cell-strong">${esc(x.user)}<div class="cell-sub">${esc(x.role||'')}</div></td>
+    <td>${esc(x.started||'—')}</td>
+    <td><span class="badge amber">${svgS('clock',13)} ${esc(x.remaining||'—')}</span></td>
+    <td class="cell-sub">${esc(x.ip||'Tidak diketahui')}</td>
+    <td><button class="btn btn-ghost" style="color:var(--red);border-color:var(--red-tint)" onclick="delIdx('sessions',${i})">Cabut akses</button></td>
+  </tr>`).join('')
+  :`<tr><td colspan="5"><div class="empty"><div class="ic">${svg('clock')}</div><h3>Belum ada sesi aktif</h3><p>Sesi login tablet warehouse dan PIC akan terdaftar di sini agar bisa dicabut sewaktu-waktu.</p></div></td></tr>`;
+  return head('Sessions','Sesi login aktif pada tablet operator dan PIC.',
+    `<button class="btn btn-ghost" onclick="mockSession()">${svg('plus')} Sesi contoh</button>`)
+    + backendNote('Belum ada penyimpanan sesi (Redis/JWT), sehingga daftar ini belum mencerminkan login sungguhan.')
+    + `<div class="table-wrap"><table><thead><tr><th>Pengguna</th><th>Mulai</th><th>Sisa</th><th>IP</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+};
+function mockSession(){
+  const l=DB.get('sessions',[]);
+  l.unshift({user:role().name,role:role().kind,started:new Date().toLocaleString('id-ID'),remaining:'59:00',ip:'192.168.110.'+(100+l.length)});
+  DB.set('sessions',l);route();toast('Sesi contoh ditambahkan');
+}
+
+/* =====================================================================
+   SELF-CHECK MENU — jaring pengaman anti "menu hilang saat relayout"
+   ===================================================================== */
+function menuAudit(){
+  const navIds=new Set();
+  const walk=items=>items.forEach(i=>{navIds.add(i.id);if(i.children)walk(i.children);});
+  const savedRole=DB.get('role','SUPER_ADMIN');
+  ROLES.forEach(r=>{DB.set('role',r.id);walk(navModel());});
+  DB.set('role',savedRole);
+  const missing=MENU_REGISTRY.filter(m=>{
+    if(m.dynamic) return ![...navIds].some(id=>String(id).startsWith(m.dynamic));
+    return !navIds.has(m.id);
+  });
+  const noPage=MENU_REGISTRY.filter(m=>!m.dynamic && typeof PAGES[m.id]!=='function');
+  return {missing,noPage};
+}
+function selfCheckMenus(){
+  const a=menuAudit();
+  if(a.missing.length||a.noPage.length){
+    console.warn('MENU HILANG:',a.missing.map(m=>m.label),'TANPA HALAMAN:',a.noPage.map(m=>m.label));
+  }
+  return a;
+}
+
+/* =====================================================================
+   MODAL / FORM
+   ===================================================================== */
+function openModal(title,fields,onSave){
+  const ov=document.getElementById('overlay');
+  ov.innerHTML=`<div class="modal">
+    <div class="m-head"><h3>${esc(title)}</h3><button class="icon-btn" style="margin-left:auto" onclick="closeModal()">&#10005;</button></div>
+    <div class="m-body">${fields}</div>
+    <div class="m-foot"><button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" id="modalSave">${svg('check')} Simpan</button></div></div>`;
+  ov.classList.add('show');
+  document.getElementById('modalSave').onclick=()=>{if(onSave()!==false)closeModal();};
+  ov.onclick=e=>{if(e.target===ov)closeModal();};
+}
+function closeModal(){const ov=document.getElementById('overlay');ov.classList.remove('show');ov.innerHTML='';}
+function fld(label,id,type,value,hint){
+  return `<div class="form-field"><label>${esc(label)}</label><input id="${id}" type="${type||'text'}" value="${esc(value==null?'':value)}">${hint?`<div class="hint">${esc(hint)}</div>`:''}</div>`;
+}
+function sel(label,id,opts,val){
+  return `<div class="form-field"><label>${esc(label)}</label><select id="${id}">${opts.map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
+}
+function v(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+
+/* =====================================================================
+   TEMA / SIDEBAR / TOAST
+   ===================================================================== */
+function setThemeBtn(){document.getElementById('themeBtn').innerHTML=svg(document.documentElement.dataset.theme==='dark'?'sun':'moon');}
+function toggleTheme(){const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';try{localStorage.setItem('amr2_theme',d.dataset.theme);}catch(e){}setThemeBtn();}
+(function(){let t='light';try{t=localStorage.getItem('amr2_theme')||'light';}catch(e){}document.documentElement.dataset.theme=t;})();
+
+function toggleSidebar(){const s=document.getElementById('sidebar');s.classList.toggle('open');document.getElementById('scrim').classList.toggle('show',s.classList.contains('open'));}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('scrim').classList.remove('show');}
+
+function toast(msg){
+  const w=document.getElementById('toasts');
+  const el=document.createElement('div');el.className='toast';
+  el.innerHTML=svg('check')+`<span>${esc(msg)}</span>`;
+  w.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(20px)';setTimeout(()=>el.remove(),250);},2800);
+}
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+renderChrome();
+setThemeBtn();
+selfCheckMenus();
+if(!location.hash) location.hash=defaultPage();
+route();
+</script>
+</body>
+</html>
